@@ -2,8 +2,6 @@ from django.conf import settings
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
-    Group,
-    Permission,
     PermissionsMixin,
 )
 from django.db import models
