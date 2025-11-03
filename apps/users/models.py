@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
+    Group,
+    Permission,
     PermissionsMixin,
 )
 from django.db import models
@@ -38,8 +40,8 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
     email = models.EmailField(max_length=150, unique=True, null=False, db_index=True)
-    password = models.CharField(max_length=255)  # managed by AbstractBaseUser
-    name = models.CharField(max_length=100, blank=True, null=True)  # optional
+    password = models.CharField(max_length=255)
+    name = models.CharField(max_length=100, blank=True, null=True)
     nickname = models.CharField(max_length=50, blank=True, null=True, db_index=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
     gender = models.CharField(max_length=10, blank=True, null=True)
@@ -56,6 +58,22 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
+
+    # 충돌 해결용 related_name 추가
+    groups = models.ManyToManyField(
+        Group,
+        verbose_name="groups",
+        blank=True,
+        related_name="custom_user_set",
+        related_query_name="custom_user",
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        verbose_name="user permissions",
+        blank=True,
+        related_name="custom_user_permissions",
+        related_query_name="custom_user_perm",
+    )
 
     class Meta:
         db_table = "users"
@@ -82,3 +100,21 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_deleted(self):
         return self.deleted_at is not None
+
+
+class SocialAccount(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="social_accounts"
+    )
+    provider = models.CharField(max_length=20)
+    provider_user_id = models.CharField(max_length=200)
+    connected_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = "social_accounts"
+        verbose_name = "Social Account"
+        verbose_name_plural = "Social Accounts"
+
+    def __str__(self):
+        return f"{self.provider} - {self.user.email}"
