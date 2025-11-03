@@ -1,0 +1,27 @@
+name: Django Deployment
+
+on:
+  workflow_dispatch:   # 수동 배포 가능
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: EC2 ssh connection and deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ec2-3-39-190-109.ap-northeast-2.compute.amazonaws.com
+          username: ubuntu
+          key: |
+            b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtz
+            c2gtZWQyNTUxOQAAACCwiJG7vxpLsu08KZ59v500/7GBbb9/yXCeuozEvSh8ygAA
+            AIgtR0QSLUdEEgAAAAtzc2gtZWQyNTUxOQAAACCwiJG7vxpLsu08KZ59v500/7GB
+            bb9/yXCeuozEvSh8ygAAAEAwUQIBATAFBgMrZXAEIgQgeNGJofX5XQTKynhGyjvU
+            m7CIkbu/Gkuy7Twpnn2/nTT/sYFtv3/JcJ66jMS9KHzKAAAAAAECAwQF
+          script: |
+            cd /your_project_path
+            docker-compose build
+            docker-compose down
+            docker-compose up -d

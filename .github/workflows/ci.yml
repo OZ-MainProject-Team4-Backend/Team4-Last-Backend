@@ -1,0 +1,61 @@
+name: Django CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_DB: last-AWS
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: 1234
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U admin; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+
+      - name: 🧹 Code Format Check (isort + black)
+        run: |
+          uv run isort --check-only .
+          uv run black --check .
+
+      - name: 🧠 Type Check (mypy)
+        run: uv run mypy .
+
+      - name: 🔎 Check Django Database Connection
+        env:
+          DATABASE_URL: postgres://admin:1234@localhost:5432/AWS
+        run: uv run python manage.py check --database default

@@ -1,0 +1,28 @@
+services:
+  last-AWS-db:
+    image: postgres:15-alpine
+    container_name: last-AWS
+    restart: always
+    env_file:
+      - env/.env_local
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data_aws:/var/lib/postgresql/data
+
+  aws-web:
+    build: .
+    container_name: last-AWS-web
+    restart: always
+
+    env_file:
+      - env/.env_local
+    ports:
+      - "8000:8000"
+    depends_on:
+      - last-AWS-db
+    volumes:
+      - .:/last-AWS
+
+volumes:
+  postgres_data_aws:
