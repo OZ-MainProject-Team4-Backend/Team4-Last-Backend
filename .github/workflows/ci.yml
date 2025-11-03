@@ -53,7 +53,7 @@ jobs:
           uv run black --check .
 
       - name: 🧠 Type Check (mypy)
-        run: uv run mypy .
+        run: uv run --active mypy .
 
       - name: 🔎 Check Django Database Connection
         env:
