@@ -1,10 +1,11 @@
 from django.db import models
 from django.utils import timezone
+
 from apps.users.models import User
 from apps.weather.models import WeatherData
 
 
-class SoftDeleteMixin(models.Model): #Soft Delete
+class SoftDeleteMixin(models.Model):  # Soft Delete
 
     deleted_at = models.DateTimeField(blank=True, null=True)  # 삭제 시각 (Soft Delete)
 
@@ -34,12 +35,13 @@ class Diary(SoftDeleteMixin, models.Model):
     date = models.DateField()
     weather_data = models.ForeignKey(WeatherData, on_delete=models.SET_NULL, null=True)
     satisfaction = models.IntegerField(
-        choices=SATISFACTION_CHOICES,
-        help_text="오늘의 기분 점수 (0~3)"
+        choices=SATISFACTION_CHOICES, help_text="오늘의 기분 점수 (0~3)"
     )
     title = models.CharField(max_length=255)
     notes = models.TextField()
-    image_url = models.URLField(max_length=255)
+    image_url = models.URLField(
+        max_length=255, blank=True, null=True
+    )  # 이미지 없이 저장해도 가능 - 에러발생 X
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -38,7 +38,14 @@ class DiaryCreateSerializer(serializers.ModelSerializer):
         return Diary.objects.create(user=user, **validated_data)
 
     def update(self, instance, validated_data):
-        for field in ["date", "title", "satisfaction", "notes", "image_url", "weather_data"]:
+        for field in [
+            "date",
+            "title",
+            "satisfaction",
+            "notes",
+            "image_url",
+            "weather_data",
+        ]:
             if field in validated_data:
                 setattr(instance, field, validated_data[field])
         instance.save()
