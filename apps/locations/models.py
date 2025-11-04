@@ -2,6 +2,8 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
+from apps.core.models import SoftDeleteModel
+
 
 class Location(models.Model):
     """
@@ -37,9 +39,10 @@ class Location(models.Model):
         return f"{self.city} {self.district}"
 
 
-class FavoriteLocation(models.Model):
+class FavoriteLocation(SoftDeleteModel):
     """
     사용자별 즐겨찾기 지역 관리 테이블
+    SoftDeleteModel 상속 - deleted_at, delete(), hard_delete() 자동 포함
     """
 
     id = models.BigAutoField(primary_key=True)
@@ -61,19 +64,16 @@ class FavoriteLocation(models.Model):
     is_default = models.BooleanField(default=False)  # 기본 위치 여부 (기본값: False)
     created_at = models.DateTimeField(auto_now_add=True)  # 생성 시각
     updated_at = models.DateTimeField(auto_now=True)  # 수정 시각
-    deleted_at = models.DateTimeField(blank=True, null=True)  # Soft Delete용 삭제 시각
 
     class Meta:
         db_table = "favorite_locations"
         constraints = [
-            # 같은 유저가 동일한 지역을 중복 등록 불가
             models.UniqueConstraint(
-                fields=["user", "location"],
+                fields=["user", "location"],  # 같은 유저가 동일한 지역을 중복 등록 불가
                 name="uq_favorite_user_location",
             ),
-            # 한 유저가 is_default=True인 즐겨찾기를 하나만 가질 수 있도록 제한
             models.UniqueConstraint(
-                fields=["user"],
+                fields=["user"],  # 유저당 기본위치 하나만
                 condition=Q(is_default=True),
                 name="uq_default_favorite_per_user",
             ),
