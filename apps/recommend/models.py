@@ -9,11 +9,13 @@ class OutfitRecommendation(models.Model):
         related_name="outfit_recommendations",
     )
 
-    # 일단 더미 모델로 대체(DB 영향 x)
-    class WeatherData(models.Model):
-        class Meta:
-            managed = False
-            db_table = "weather_data"
+    weather_data = models.ForeignKey(
+        "weather.WeatherData",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="outfit_recommendations",
+    )
 
     rec_1 = models.TextField()
     rec_2 = models.TextField()

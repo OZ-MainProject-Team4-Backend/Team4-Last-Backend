@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'apps.locations',
     'apps.recommend',
     "apps.weather",
+    'apps.core',
     'apps.diary'
 ]
 
