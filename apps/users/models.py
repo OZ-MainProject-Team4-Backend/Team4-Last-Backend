@@ -36,17 +36,40 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    AGE_GROUP_CHOICES = (
+        ("10", "10대"),
+        ("20", "20대"),
+        ("30", "30대"),
+        ("40", "40대"),
+        ("50", "50대"),
+        ("60+", "60대 이상"),
+    )
+    GENDER_CHOICES = (
+        ("Woman", "여성"),
+        ("Man", "남성"),
+        ("0", "기타"),
+    )
+
     id = models.AutoField(primary_key=True)
     email = models.EmailField(max_length=150, unique=True, null=False, db_index=True)
     password = models.CharField(max_length=255)
     name = models.CharField(max_length=100, blank=True, null=True)
     nickname = models.CharField(max_length=50, blank=True, null=True, db_index=True)
-    gender = models.CharField(max_length=10, blank=True, null=True)
+    gender = models.CharField(
+        max_length=10, choices=GENDER_CHOICES, blank=True, null=True
+    )
+    age_group = models.CharField(
+        max_length=10,
+        choices=AGE_GROUP_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="연령대",
+    )
 
     email_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    deleted_at = models.DateTimeField(blank=True, null=True)
+    deleted_at = models.DateTimeField(blank=True, null=True, db_index=True)
 
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
@@ -93,6 +116,7 @@ class SocialAccount(models.Model):
     connected_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
+        unique_together = ("provider", "provider_user_id")
         db_table = "social_accounts"
         verbose_name = "Social Account"
         verbose_name_plural = "Social Accounts"

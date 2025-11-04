@@ -112,6 +112,20 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+    }
+}
+
+
+EMAIL_VERIF_CODE_TTL = 300  # 5분
+EMAIL_PREVER_TTL = 1800  # 30분
+EMAIL_VERIF_RESEND_TTL = 60  # 1분
+EMAIL_VERIF_MAX_PER_HOUR = 5
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -123,7 +137,11 @@ USE_I18N = True
 
 USE_TZ = True
 
-
+SESSION_COOKIE_SECURE = True  # HTTPS 사용 시 True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = True
+# CSRF_TRUSTED_ORIGINS = [http://team4.p-e.kr/]
 AUTH_USER_MODEL = "users.User"
 
 # Static files (CSS, JavaScript, Images)
@@ -135,3 +153,14 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# EMAIL
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.naver.com"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False
+EMAIL_HOST_USER = "qkralstn8070@naver.com"
+EMAIL_HOST_PASSWORD = "GZT4HV1E33RH"
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
