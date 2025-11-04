@@ -21,11 +21,22 @@ class SoftDeleteMixin(models.Model): #Soft Delete
 
 
 class Diary(SoftDeleteMixin, models.Model):
+
+    SATISFACTION_CHOICES = [
+        (0, "😔 별로예요"),
+        (1, "😐 보통이에요"),
+        (2, "🙂 좋아요"),
+        (3, "😄 아주 좋아요"),
+    ]
+
     id = models.BigAutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
     weather_data = models.ForeignKey(WeatherData, on_delete=models.SET_NULL, null=True)
-    satisfaction = models.IntegerField()
+    satisfaction = models.IntegerField(
+        choices=SATISFACTION_CHOICES,
+        help_text="오늘의 기분 점수 (0~3)"
+    )
     title = models.CharField(max_length=255)
     notes = models.TextField()
     image_url = models.URLField(max_length=255)
