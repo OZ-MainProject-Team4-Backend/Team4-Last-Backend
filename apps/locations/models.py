@@ -45,7 +45,8 @@ class FavoriteLocation(SoftDeleteModel):
     SoftDeleteModel 상속 - deleted_at, delete(), hard_delete() 자동 포함
     """
 
-    id = models.BigAutoField(primary_key=True)
+    # id, deleted_at, objects, all_objects는 SoftDeleteModel에서 상속
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,  # FK - users.id
         on_delete=models.CASCADE,  # 유저 삭제 시 함께 삭제
@@ -70,11 +71,12 @@ class FavoriteLocation(SoftDeleteModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["user", "location"],  # 같은 유저가 동일한 지역을 중복 등록 불가
+                condition=Q(deleted_at__isnull=True),
                 name="uq_favorite_user_location",
             ),
             models.UniqueConstraint(
-                fields=["user"],  # 유저당 기본위치 하나만
-                condition=Q(is_default=True),
+                fields=["user"],
+                condition=Q(is_default=True, deleted_at__isnull=True),
                 name="uq_default_favorite_per_user",
             ),
         ]
