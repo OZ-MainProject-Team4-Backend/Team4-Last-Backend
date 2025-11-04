@@ -32,7 +32,9 @@ class WeatherData(models.Model):
     )  # 날씨 아이콘 코드
     # icon CharField 적용시 max_length 는 10자로 해도 충분할듯함
 
-    raw_payload = models.JSONField(default=dict)  # 원본 API 응답 저장용 ( 디버깅 / 백업용 )
+    raw_payload = models.JSONField(
+        default=dict
+    )  # 원본 API 응답 저장용 ( 디버깅 / 백업용 )
     created_at = models.DateTimeField(default=timezone.now)  # 데이터 저장 시각
 
     class Meta:
@@ -48,7 +50,7 @@ class WeatherData(models.Model):
             ),
             models.CheckConstraint(
                 check=models.Q(rain_probability__gte=0.0)
-                      & models.Q(rain_probability__lte=100.0),
+                & models.Q(rain_probability__lte=100.0),
                 name="rainprob_range_0_100",
             ),
         ]
