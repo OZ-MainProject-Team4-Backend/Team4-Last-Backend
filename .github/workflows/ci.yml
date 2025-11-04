@@ -17,7 +17,6 @@ jobs:
           POSTGRES_DB: last-AWS
           POSTGRES_USER: admin
           POSTGRES_PASSWORD: 1234
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ports:
           - 5432:5432
         options: >-
@@ -27,18 +26,21 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.12"
 
-      - name: Install uv
-        run: pip install uv
-
-      - name: Install dependencies
-        run: uv sync
+      - name: Install uv & deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install uv
+          uv sync
 
       - name: Wait for PostgreSQL
         run: |
@@ -47,15 +49,28 @@ jobs:
             sleep 2
           done
 
-      - name: 🧹 Code Format Check (isort + black)
+      - name: Auto-format with isort
+        run: uv run isort .
+
+      - name: Auto-format with black
+        run: uv run black .
+
+      - name: Commit & push formatting changes (if any)
         run: |
-          uv run isort --check-only .
-          uv run black --check .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            git add -A
+            git commit -m "ci: autoformat with isort & black"
+            git push
+          else
+            echo "No formatting changes"
+          fi
 
       - name: 🧠 Type Check (mypy)
         run: uv run --active mypy .
 
       - name: 🔎 Check Django Database Connection
         env:
-          DATABASE_URL: postgres://admin:1234@localhost:5432/AWS
+          DATABASE_URL: postgres://admin:1234@localhost:5432/last-AWS
         run: uv run python manage.py check --database default
