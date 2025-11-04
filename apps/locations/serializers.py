@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Location, FavoriteLocation
+
+from .models import FavoriteLocation, Location
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -7,15 +8,8 @@ class LocationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Location
-        fields = [
-            "id",
-            "city",
-            "district",
-            "latitude",
-            "longitude",
-            "is_active"
-        ]
-        read_only_fields = ["id", "is_active"] # 읽기 전용 필드 수정 불가
+        fields = ["id", "city", "district", "latitude", "longitude", "is_active"]
+        read_only_fields = ["id", "is_active"]  # 읽기 전용 필드 수정 불가
 
 
 class FavoriteLocationSerializer(serializers.ModelSerializer):
