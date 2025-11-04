@@ -41,7 +41,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     password = models.CharField(max_length=255)
     name = models.CharField(max_length=100, blank=True, null=True)
     nickname = models.CharField(max_length=50, blank=True, null=True, db_index=True)
-    phone = models.CharField(max_length=20, blank=True, null=True)
     gender = models.CharField(max_length=10, blank=True, null=True)
 
     email_verified = models.BooleanField(default=False)
