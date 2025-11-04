@@ -14,8 +14,5 @@ def send_verification_email(email, code):
     인증 코드는 5분 후 만료됩니다.
     """
 
-    email_message = EmailMessage(
-        subject, message, settings.DEFAULT_FROM_EMAIL, [email]
-    )
+    email_message = EmailMessage(subject, message, settings.DEFAULT_FROM_EMAIL, [email])
     email_message.send(fail_silently=False)
-
