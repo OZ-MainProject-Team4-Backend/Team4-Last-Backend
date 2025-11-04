@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'apps.users',
     'apps.locations',
+    'apps.recommend',
 ]
 
 MIDDLEWARE = [
