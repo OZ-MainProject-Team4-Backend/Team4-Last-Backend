@@ -21,8 +21,10 @@ load_dotenv(dotenv_path=ENV_FILE)
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-env = environ.Env(DEBUG=(bool, False))
-environ.Env.read_env(os.path.join(BASE_DIR, "env"))
+env = environ.Env()
+ENV_PATH = os.path.join(BASE_DIR, ".env")
+if os.path.exists(ENV_PATH):
+    environ.Env.read_env(ENV_PATH)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -171,7 +173,7 @@ EMAIL_HOST_PASSWORD = "GZT4HV1E33RH"
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 OPENWEATHER = {
-    "API_KEY": env("OPENWEATHER_API_KEY"),
+    "API_KEY": env("OPENWEATHER_API_KEY", default=os.getenv("OPENWEATHER_API_KEY", "")),
     "BASE_DIR": env("OPENWEATHER_BASE_DIR", default="https://api.openweathermap.org"),
     "TIMEOUT": env.int("OPENWEATHER_TIMEOUT", default=5),
 }
