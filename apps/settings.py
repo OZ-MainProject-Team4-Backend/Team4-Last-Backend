@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.locations',
     'apps.recommend',
+    "apps.weather",
 ]
 
 MIDDLEWARE = [
