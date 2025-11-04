@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'apps.recommend',
     "apps.weather",
     'apps.core',
+    'apps.diary',
 ]
 
 MIDDLEWARE = [
