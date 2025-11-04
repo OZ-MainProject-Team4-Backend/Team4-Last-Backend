@@ -76,7 +76,9 @@ def generate_outfit_recommend(user, latitude: float, longitude: float) -> dict:
             "발마칸 코트 + 니트 + 와이드 진 + 운동화",
             "피쉬테일 롱 패딩 + 기모 트레이닝 팬츠 + 어그 슈즈",
         )
-        explanation = f"{temp}°C에는 아직 쌀쌀하니 두께감 있는 자켓이나 코트를 추천드려요."
+        explanation = (
+            f"{temp}°C에는 아직 쌀쌀하니 두께감 있는 자켓이나 코트를 추천드려요."
+        )
 
     elif temp <= 11:
         rec_1, rec_2, rec_3 = (
