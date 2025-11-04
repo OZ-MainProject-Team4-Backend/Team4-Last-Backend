@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+import environ
 from dotenv import load_dotenv
 
 ENV_FILE = os.environ.get("ENV_FILE", "env/.env")
@@ -20,6 +21,8 @@ load_dotenv(dotenv_path=ENV_FILE)
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env(DEBUG=(bool, False))
+environ.Env.read_env(os.path.join(BASE_DIR, "env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -166,3 +169,9 @@ EMAIL_USE_TLS = False
 EMAIL_HOST_USER = "qkralstn8070@naver.com"
 EMAIL_HOST_PASSWORD = "GZT4HV1E33RH"
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+OPENWEATHER = {
+    "API_KEY": env("OPENWEATHER_API_KEY"),
+    "BASE_DIR": env("OPENWEATHER_BASE_DIR", default="https://api.openweathermap.org"),
+    "TIMEOUT": env.int("OPENWEATHER_TIMEOUT", default=5),
+}
