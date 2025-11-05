@@ -139,10 +139,9 @@ CACHES = {
         "LOCATION": "redis://redis:6379/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
+        },
     }
 }
-
 
 
 EMAIL_VERIF_CODE_TTL = 300  # 5분
