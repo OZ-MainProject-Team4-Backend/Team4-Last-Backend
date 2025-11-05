@@ -1,13 +1,24 @@
 from django.db import models
 from django.utils import timezone
 
-from apps.locations.models import Location
+class WeatherLocation(models.Model):
+    city = models.CharField(max_length=100)
+    district = models.CharField(max_length=100)
+    lat = models.FloatField()
+    lon = models.FloatField()
+    dp_name = models.CharField(max_length=100)
 
+    class Meta:
+        db_table = "weather_location"
+        unique_together = ("city", "district")
+
+    def __str__(self):
+        return f"{self.city} {self.district}"
 
 class WeatherData(models.Model):
     id = models.BigAutoField(primary_key=True)  # Weather_id
     location = models.ForeignKey(
-        Location,
+        WeatherLocation,
         on_delete=models.CASCADE,
         related_name="weather_data",
     )  # Location_id FK
@@ -42,7 +53,7 @@ class WeatherData(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["location", "valid_time"],
-                name="uniq_location_validtime",
+                name="uniq_location_valid_time",
             ),
             models.CheckConstraint(
                 check=models.Q(humidity__gte=0) & models.Q(humidity__lte=100),
@@ -51,7 +62,7 @@ class WeatherData(models.Model):
             models.CheckConstraint(
                 check=models.Q(rain_probability__gte=0.0)
                 & models.Q(rain_probability__lte=100.0),
-                name="rainprob_range_0_100",
+                name="rain_prob_range_0_100",
             ),
         ]
         indexes = [

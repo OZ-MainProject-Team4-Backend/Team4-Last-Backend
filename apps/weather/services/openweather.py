@@ -53,6 +53,3 @@ def get_current(lat: float, lon: float, * , timeout: int | None = None) -> Curre
 
 def get_forecast(lat: float, lon: float, *, timeout: int | None = None) -> Dict[str, Any]:
     return _request("/data/2.5/forecast", {"lat" : lat, "lon": lon}, timeout)
-
-
-

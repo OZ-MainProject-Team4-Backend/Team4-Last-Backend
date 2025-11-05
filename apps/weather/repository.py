@@ -3,15 +3,14 @@ from typing import Dict, Any
 
 from django.db import transaction
 
-from apps.locations.models import Location
-from apps.weather.models import WeatherData
+from apps.weather.models import WeatherData, WeatherLocation
 
 
 def _ts_to_dt_utc(ts: int) -> datetime:
     return datetime.fromtimestamp(ts, tz=timezone.utc)
 
 @transaction.atomic
-def save_current(location: Location, current: Dict[str, Any]) -> WeatherData:
+def save_current(location: WeatherLocation, current: Dict[str, Any]) -> WeatherData:
     vt = _ts_to_dt_utc(current["base_time"])
     obj = WeatherData.objects.update_or_create(
         location=location,
@@ -32,7 +31,7 @@ def save_current(location: Location, current: Dict[str, Any]) -> WeatherData:
     return obj
 
 @transaction.atomic
-def save_forecast(location: Location, forecast_payload: Dict[str, Any]) -> int:
+def save_forecast(location: WeatherLocation, forecast_payload: Dict[str, Any]) -> int:
     cnt = 0
     for item in forecast_payload.get("list", []):
         dt = _ts_to_dt_utc(int(item.get("dt", 0)))
