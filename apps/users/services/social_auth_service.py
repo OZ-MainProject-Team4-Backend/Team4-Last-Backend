@@ -1,16 +1,23 @@
-from typing import Dict
+from __future__ import annotations
+from typing import TYPE_CHECKING, Dict
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+
 from ..models import SocialAccount
 from ..utils.social_auth import verify_social_token
 
+# runtime에서 사용할 ORM 클래스
 User = get_user_model()
+
+# 타입 검사(mypy) 전용 실제 모델 타입
+if TYPE_CHECKING:
+    from ..models import User as UserModel  # type: ignore
 
 class SocialAuthService:
     @staticmethod
     @transaction.atomic
-    def get_or_create_user_from_social(provider:str, social_user_info: Dict) -> User:
+    def get_or_create_user_from_social(provider: str, social_user_info: Dict) -> "UserModel":
         provider_user_id = social_user_info["provider_user_id"]
         email = social_user_info.get("email")
         nickname = social_user_info.get("nickname")
@@ -24,7 +31,9 @@ class SocialAuthService:
 
         except SocialAccount.DoesNotExist:
             if not email:
-                raise ValueError("이메일 정보가 필요합니다. 소셜 로그인 설정에서 이메일 제공 동의 해주세요.")
+                raise ValueError(
+                    "이메일 정보가 필요합니다. 소셜 로그인 설정에서 이메일 제공 동의 해주세요."
+                )
 
             user = User.objects.filter(
                 email__iexact=email,
@@ -32,6 +41,7 @@ class SocialAuthService:
             ).first()
 
             if not user:
+                # create_user 시그니처가 프로젝트마다 다를 수 있으니 필요에 따라 인자 조절
                 user = User.objects.create_user(
                     email=email,
                     nickname=nickname or email.split("@")[0],
@@ -48,7 +58,7 @@ class SocialAuthService:
 
     @staticmethod
     @transaction.atomic
-    def link_social_account(user: User, provider:str, social_user_info: Dict) -> SocialAccount:
+    def link_social_account(user: "UserModel", provider: str, social_user_info: Dict) -> SocialAccount:
         provider_user_id = social_user_info["provider_user_id"]
 
         existing = SocialAccount.objects.filter(
@@ -73,7 +83,7 @@ class SocialAuthService:
         )
 
     @staticmethod
-    def unlink_social_account(user:User,provider:str) -> None:
+    def unlink_social_account(user: "UserModel", provider: str) -> None:
         social_account = SocialAccount.objects.get(
             user=user,
             provider=provider,
