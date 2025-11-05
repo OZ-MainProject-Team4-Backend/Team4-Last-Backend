@@ -28,7 +28,7 @@ def _request(
     base = settings.OPENWEATHER["BASE_URL"]
     api_key = settings.OPENWEATHER["API_KEY"]
     timeout = timeout or settings.OPENWEATHER.get("TIMEOUT", 5)
-    p = {"appid": api_key, "utils": "metric", "lang": "kr", **params}
+    p = {"appid": api_key, "units": "metric", "lang": "kr", **params}
     try:
         r = requests.get(f"{base}{path}", params=p, timeout=timeout)
         if r.status_code >= 500:
@@ -52,7 +52,7 @@ def get_current(lat: float, lon: float, *, timeout: int | None = None) -> Curren
         "temperature": float(main.get("temp")),
         "feels_like": float(main.get("feels_like")),
         "humidity": int(main["humidity"]) if "humidity" in main else None,
-        "wind_speed": float(wind["speed"]) if "wind_speed" in wind else None,
+        "wind_speed": float(wind["speed"]) if "speed" in wind else None,
         "rain_volume": float(rain.get("1h") or rain.get("3h") or 0.0),
         "condition": weather0.get("main"),
         "icon": weather0.get("icon"),

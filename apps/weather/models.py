@@ -7,10 +7,13 @@ class WeatherLocation(models.Model):
     district = models.CharField(max_length=100)
     lat = models.FloatField()
     lon = models.FloatField()
-    dp_name = models.CharField(max_length=100)
+    dp_name = models.CharField(max_length=100)  # 디스플레이에 적용될 이름
 
     class Meta:
         db_table = "weather_location"
+        # UniqueConstraint = models.UniqueConstraint(
+        #     fields=["city", "district"], name="weather_location"
+        # )
         unique_together = ("city", "district")
 
     def __str__(self):
@@ -48,7 +51,7 @@ class WeatherData(models.Model):
     raw_payload = models.JSONField(
         default=dict
     )  # 원본 API 응답 저장용 ( 디버깅 / 백업용 )
-    created_at = models.DateTimeField(default=timezone.now)  # 데이터 저장 시각
+    created_at = models.DateTimeField(auto_now_add=True)  # 데이터 저장 시각
 
     class Meta:
         db_table = "weather_data"  # 실제 DB 에 저장되는 이름

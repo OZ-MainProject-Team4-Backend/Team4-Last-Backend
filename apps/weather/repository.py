@@ -23,7 +23,7 @@ def save_current(location: WeatherLocation, current: Dict[str, Any]) -> WeatherD
             "humidity": current["humidity"],
             "rain_probability": None,
             "rain_volume": current.get("rain_volume") or None,
-            "wind_speed": current.get("wind_speed") or None,
+            "wind_speed": current.get("wind_speed"),
             "condition": current.get("condition"),
             "icon": current.get("icon"),
             "raw_payload": current["raw"],
