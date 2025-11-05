@@ -25,6 +25,7 @@ from .serializers import (
     SocialLoginSerializer,
     SocialUnlinkSerializer,
     UserProfileSerializer,
+    UserDeleteSerializer,
 )
 from .services.social_auth_service import SocialAuthService
 from .utils.send_email import send_verification_email
@@ -348,9 +349,9 @@ class PasswordChangeView(APIView):
 
 class UserDeleteView(APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = None
+    serializer_class = UserDeleteSerializer
 
-    @extend_schema(responses={200: dict})
+    @extend_schema(request=UserDeleteSerializer,responses={200: dict})
     def delete(self, request):
         user = request.user
 
