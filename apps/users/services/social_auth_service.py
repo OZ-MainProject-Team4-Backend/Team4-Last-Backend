@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Dict
 
 from django.contrib.auth import get_user_model
@@ -14,18 +15,20 @@ User = get_user_model()
 if TYPE_CHECKING:
     from ..models import User as UserModel  # type: ignore
 
+
 class SocialAuthService:
     @staticmethod
     @transaction.atomic
-    def get_or_create_user_from_social(provider: str, social_user_info: Dict) -> "UserModel":
+    def get_or_create_user_from_social(
+        provider: str, social_user_info: Dict
+    ) -> "UserModel":
         provider_user_id = social_user_info["provider_user_id"]
         email = social_user_info.get("email")
         nickname = social_user_info.get("nickname")
 
         try:
             social_account = SocialAccount.objects.select_related("user").get(
-                provider=provider,
-                provider_user_id=provider_user_id
+                provider=provider, provider_user_id=provider_user_id
             )
             return social_account.user
 
@@ -36,8 +39,7 @@ class SocialAuthService:
                 )
 
             user = User.objects.filter(
-                email__iexact=email,
-                deleted_at__isnull=True
+                email__iexact=email, deleted_at__isnull=True
             ).first()
 
             if not user:
@@ -58,21 +60,24 @@ class SocialAuthService:
 
     @staticmethod
     @transaction.atomic
-    def link_social_account(user: "UserModel", provider: str, social_user_info: Dict) -> SocialAccount:
+    def link_social_account(
+        user: "UserModel", provider: str, social_user_info: Dict
+    ) -> SocialAccount:
         provider_user_id = social_user_info["provider_user_id"]
 
-        existing = SocialAccount.objects.filter(
-            provider=provider,
-            provider_user_id=provider_user_id
-        ).exclude(user=user).exists()
+        existing = (
+            SocialAccount.objects.filter(
+                provider=provider, provider_user_id=provider_user_id
+            )
+            .exclude(user=user)
+            .exists()
+        )
 
         if existing:
             raise ValueError("이미 다른 계정에 연결된 소셜 계정입니다.")
 
         if SocialAccount.objects.filter(
-            user=user,
-            provider=provider,
-            provider_user_id=provider_user_id
+            user=user, provider=provider, provider_user_id=provider_user_id
         ).exists():
             raise ValueError("이미 연결된 소셜 계정입니다.")
 

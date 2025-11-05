@@ -162,7 +162,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#소셜로그인
+# 소셜로그인
 SOCIAL_PROVIDERS = {
     "kakao": {
         "name": "카카오",
