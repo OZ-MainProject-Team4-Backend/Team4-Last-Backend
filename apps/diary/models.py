@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+
 from apps.core.models import SoftDeleteModel
 from apps.users.models import User
 from apps.weather.models import WeatherData
@@ -15,17 +16,19 @@ class Diary(SoftDeleteModel):
     ]
 
     id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE,
-                             related_name="diaries",
-                             verbose_name="작성자",)
-    date = models.DateField(
-        verbose_name="작성 날짜")
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="diaries",
+        verbose_name="작성자",
+    )
+    date = models.DateField(verbose_name="작성 날짜")
     weather_data = models.ForeignKey(
         WeatherData,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="diaries"
+        related_name="diaries",
     )
     satisfaction = models.IntegerField(
         choices=SATISFACTION_CHOICES, help_text="오늘의 기분 점수 (0~3)"
