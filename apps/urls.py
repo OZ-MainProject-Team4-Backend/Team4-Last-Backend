@@ -44,4 +44,5 @@ urlpatterns = [
     # weather
     path("api/weather/", include("apps.weather.urls")),
     path("api/diary/", include("apps.diary.urls"), name="diary"),
+    path("api/recommend/", include("apps.recommend.urls"), name="recommend"),
 ]
