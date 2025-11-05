@@ -71,10 +71,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8080',
-    'http://team4.p-e.kr/'
-]
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8080', 'http://team4.p-e.kr/']
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
