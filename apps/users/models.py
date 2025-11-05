@@ -54,7 +54,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # phone validator: 숫자, +, - 허용, 9~20자
     phone_validator = RegexValidator(
         regex=r'^[0-9+\-]{9,20}$',
-        message="전화번호 형식이 올바르지 않습니다. (숫자, +, - 허용, 9~20자리)"
+        message="전화번호 형식이 올바르지 않습니다. (숫자, +, - 허용, 9~20자리)",
     )
 
     id = models.AutoField(primary_key=True)
@@ -70,7 +70,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True,
         db_index=True,
         validators=[phone_validator],
-        help_text="국가번호 포함 가능. 숫자, +, - 허용"
+        help_text="국가번호 포함 가능. 숫자, +, - 허용",
     )
 
     gender = models.CharField(

@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
@@ -6,6 +6,7 @@ from django.core.validators import RegexValidator
 from rest_framework import serializers
 
 from .models import SocialAccount, User
+
 
 class NicknameValidateSerializer(serializers.Serializer):
     nickname = serializers.CharField(
@@ -18,17 +19,21 @@ class NicknameValidateSerializer(serializers.Serializer):
         ],
     )
 
+
 class EmailSendSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
 
 class EmailVerifySerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=64)
 
+
 phone_validator = RegexValidator(
     regex=r'^[0-9+\-]{9,20}$',
     message="전화번호 형식이 올바르지 않습니다. (숫자, +, - 허용, 9~20자리)",
 )
+
 
 def map_age_to_group(age_value: Optional[str]) -> Optional[str]:
     if not age_value:
@@ -64,6 +69,7 @@ def map_age_to_group(age_value: Optional[str]) -> Optional[str]:
         pass
     return None
 
+
 def map_gender(gender_value: Optional[str]) -> Optional[str]:
     if not gender_value:
         return None
@@ -74,10 +80,13 @@ def map_gender(gender_value: Optional[str]) -> Optional[str]:
         return "Man"
     return "0"
 
+
 class SignupSerializer(serializers.ModelSerializer):
     age = serializers.CharField(write_only=True, required=False, allow_blank=True)
     gender = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    phone = serializers.CharField(required=False, allow_blank=True, validators=[phone_validator])
+    phone = serializers.CharField(
+        required=False, allow_blank=True, validators=[phone_validator]
+    )
     password_confirm = serializers.CharField(write_only=True)
 
     class Meta:
@@ -92,26 +101,48 @@ class SignupSerializer(serializers.ModelSerializer):
             "gender",
             "phone",
         ]
-        extra_kwargs = {"password": {"write_only": True}, "email": {"required": True}, "nickname": {"required": True}}
+        extra_kwargs = {
+            "password": {"write_only": True},
+            "email": {"required": True},
+            "nickname": {"required": True},
+        }
 
     def validate(self, data: Dict):
         pw = data.get("password")
         pwc = data.get("password_confirm")
         if pw != pwc:
-            raise serializers.ValidationError({"password_confirm": "비밀번호가 일치하지 않습니다."})
+            raise serializers.ValidationError(
+                {"password_confirm": "비밀번호가 일치하지 않습니다."}
+            )
 
         if not pw or len(pw) < 8:
-            raise serializers.ValidationError({"password": "비밀번호는 최소 8자 이상이어야 합니다."})
+            raise serializers.ValidationError(
+                {"password": "비밀번호는 최소 8자 이상이어야 합니다."}
+            )
         if " " in pw:
-            raise serializers.ValidationError({"password": "비밀번호에 공백을 포함할 수 없습니다."})
+            raise serializers.ValidationError(
+                {"password": "비밀번호에 공백을 포함할 수 없습니다."}
+            )
 
         email = data.get("email")
-        if email and User.objects.filter(email__iexact=email, deleted_at__isnull=True).exists():
+        if (
+            email
+            and User.objects.filter(
+                email__iexact=email, deleted_at__isnull=True
+            ).exists()
+        ):
             raise serializers.ValidationError({"email": "이미 사용중인 이메일입니다."})
 
         nickname = data.get("nickname")
-        if nickname and User.objects.filter(nickname__iexact=nickname, deleted_at__isnull=True).exists():
-            raise serializers.ValidationError({"nickname": "이미 사용중인 닉네임입니다."})
+        if (
+            nickname
+            and User.objects.filter(
+                nickname__iexact=nickname, deleted_at__isnull=True
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                {"nickname": "이미 사용중인 닉네임입니다."}
+            )
 
         return data
 
@@ -160,6 +191,7 @@ class SignupSerializer(serializers.ModelSerializer):
                 user.save()
                 return user
 
+
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -178,11 +210,13 @@ class LoginSerializer(serializers.Serializer):
         data["user"] = user
         return data
 
+
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "email", "nickname", "gender", "age_group"]
         read_only_fields = ["id", "email"]
+
 
 class PasswordChangeSerializer(serializers.Serializer):
     current_password = serializers.CharField(write_only=True, required=True)
@@ -197,16 +231,26 @@ class PasswordChangeSerializer(serializers.Serializer):
         user = request.user
 
         if not user.check_password(attrs.get("current_password", "")):
-            raise serializers.ValidationError({"current_password": "현재 비밀번호가 일치하지 않습니다."})
+            raise serializers.ValidationError(
+                {"current_password": "현재 비밀번호가 일치하지 않습니다."}
+            )
 
         if attrs.get("new_password") != attrs.get("new_password_confirm"):
-            raise serializers.ValidationError({"new_password_confirm": "새 비밀번호와 확인 비밀번호가 일치하지 않습니다."})
+            raise serializers.ValidationError(
+                {
+                    "new_password_confirm": "새 비밀번호와 확인 비밀번호가 일치하지 않습니다."
+                }
+            )
 
         new_pw = attrs.get("new_password")
         if not new_pw or len(new_pw) < 8:
-            raise serializers.ValidationError({"new_password": "비밀번호는 최소 8자 이상이어야 합니다."})
+            raise serializers.ValidationError(
+                {"new_password": "비밀번호는 최소 8자 이상이어야 합니다."}
+            )
         if " " in new_pw:
-            raise serializers.ValidationError({"new_password": "비밀번호에 공백을 포함할 수 없습니다."})
+            raise serializers.ValidationError(
+                {"new_password": "비밀번호에 공백을 포함할 수 없습니다."}
+            )
 
         return attrs
 
@@ -217,11 +261,13 @@ class PasswordChangeSerializer(serializers.Serializer):
         user.save(update_fields=["password"])
         return user
 
+
 class SocialAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = SocialAccount
         fields = ["id", "user", "provider", "provider_user_id", "connected_at"]
         read_only_fields = ["connected_at"]
+
 
 class SocialLoginSerializer(serializers.Serializer):
     token = serializers.CharField(required=True)
@@ -231,6 +277,7 @@ class SocialLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("유효하지 않은 토큰입니다.")
         return value
 
+
 class SocialLinkSerializer(serializers.Serializer):
     token = serializers.CharField(required=True)
 
@@ -239,6 +286,6 @@ class SocialLinkSerializer(serializers.Serializer):
             raise serializers.ValidationError("유효하지 않은 토큰입니다.")
         return value
 
+
 class SocialUnlinkSerializer(serializers.Serializer):
     pass
-
