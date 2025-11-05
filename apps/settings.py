@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_spectacular',
     'apps.users',
     'apps.locations',
     'apps.recommend',
@@ -191,6 +192,25 @@ SOCIAL_PROVIDERS = {
         "user_info_url": "https://www.googleapis.com/oauth2/v2/userinfo",
         "redirect_uri": "http://localhost:8000/api/social/google/callback",
         "scope": "openid email profile",
+    },
+}
+
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Your Project API',
+    'DESCRIPTION': 'API documentation',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # Swagger UI에서 인증 없이 볼 수 있게
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': False,
     },
 }
 
