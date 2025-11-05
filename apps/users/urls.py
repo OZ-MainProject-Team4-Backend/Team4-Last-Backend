@@ -16,6 +16,7 @@ from .views import (
     SocialLinkView,
     SocialLoginView,
     SocialUnlinkView,
+    UserDeleteView,
 )
 
 app_name = 'users'
@@ -36,6 +37,7 @@ urlpatterns = [
     path(
         "me/email/verify", EmailChangeVerifyView.as_view(), name="email-change-verify"
     ),
+    path("me/delete", UserDeleteView.as_view(), name="user-delete"),
     path("me/password", PasswordChangeView.as_view(), name="password-change"),
     # 소셜 로그인
     path("social/<str:provider>/login", SocialLoginView.as_view(), name="social-login"),

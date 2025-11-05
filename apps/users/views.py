@@ -24,6 +24,7 @@ from .serializers import (
     SocialLinkSerializer,
     SocialLoginSerializer,
     SocialUnlinkSerializer,
+    UserDeleteSerializer,
     UserProfileSerializer,
 )
 from .services.social_auth_service import SocialAuthService
@@ -345,6 +346,31 @@ class PasswordChangeView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": "비밀번호 변경 완료"}, status=status.HTTP_200_OK)
+
+
+class UserDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserDeleteSerializer
+
+    @extend_schema(request=UserDeleteSerializer, responses={200: dict})
+    def delete(self, request):
+        user = request.user
+
+        if user.deleted_at:
+            return Response(
+                {"error": "이미 탈퇴한 계정입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.deleted_at = timezone.now()
+        user.is_active = False
+        user.save(update_fields=["deleted_at", "is_active"])
+
+        logout(request)
+
+        logger.info(f"User deleted: {user.email}")
+
+        return Response({"deleted": True}, status=status.HTTP_200_OK)
 
 
 class SocialLoginView(APIView):
