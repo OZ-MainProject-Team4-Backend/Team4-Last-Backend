@@ -269,6 +269,7 @@ class MyPageView(APIView):
         }
         return Response(data, status=status.HTTP_200_OK)
 
+
 class ProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserProfileSerializer
