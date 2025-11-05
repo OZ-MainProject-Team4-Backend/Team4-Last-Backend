@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
+
 class WeatherLocation(models.Model):
     city = models.CharField(max_length=100)
     district = models.CharField(max_length=100)
@@ -14,6 +15,7 @@ class WeatherLocation(models.Model):
 
     def __str__(self):
         return f"{self.city} {self.district}"
+
 
 class WeatherData(models.Model):
     id = models.BigAutoField(primary_key=True)  # Weather_id

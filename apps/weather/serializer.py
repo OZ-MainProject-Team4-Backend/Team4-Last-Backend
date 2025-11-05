@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+
 class CurrentQuerySerializer(serializers.Serializer):
     city = serializers.CharField(required=False, allow_blank=True)
     district = serializers.CharField(required=False, allow_blank=True)
@@ -15,8 +16,10 @@ class CurrentQuerySerializer(serializers.Serializer):
             raise serializers.ValidationError("lat과 lon은 함께 전달해야 함")
         return attrs
 
+
 class ForecastQuerySerializer(CurrentQuerySerializer):
     pass
+
 
 class HistoryQuerySerializer(serializers.Serializer):
     location_id = serializers.IntegerField(required=False)

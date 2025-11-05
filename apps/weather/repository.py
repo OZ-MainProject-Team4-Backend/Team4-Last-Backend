@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Any, Dict
 
 from django.db import transaction
 
@@ -9,26 +9,28 @@ from apps.weather.models import WeatherData, WeatherLocation
 def _ts_to_dt_utc(ts: int) -> datetime:
     return datetime.fromtimestamp(ts, tz=timezone.utc)
 
+
 @transaction.atomic
 def save_current(location: WeatherLocation, current: Dict[str, Any]) -> WeatherData:
     vt = _ts_to_dt_utc(current["base_time"])
-    obj = WeatherData.objects.update_or_create(
+    obj, _ = WeatherData.objects.update_or_create(
         location=location,
-        valid_time = vt,
-        defaults = {
+        valid_time=vt,
+        defaults={
             "base_time": vt,
-            "temperature" : current["temperature"],
-            "feels_like" : current["feels_like"],
-            "humidity" : current["humidity"],
-            "rain_probability" : None,
-            "rain_volume" : current.get("rain_volume") or None,
-            "wind_speed" : current.get("wind_speed") or None,
-            "condition" : current.get("condition"),
-            "icon" : current.get("icon"),
-            "raw_payload" : current["raw"],
-        }
+            "temperature": current["temperature"],
+            "feels_like": current["feels_like"],
+            "humidity": current["humidity"],
+            "rain_probability": None,
+            "rain_volume": current.get("rain_volume") or None,
+            "wind_speed": current.get("wind_speed") or None,
+            "condition": current.get("condition"),
+            "icon": current.get("icon"),
+            "raw_payload": current["raw"],
+        },
     )
     return obj
+
 
 @transaction.atomic
 def save_forecast(location: WeatherLocation, forecast_payload: Dict[str, Any]) -> int:
