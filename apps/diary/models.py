@@ -1,6 +1,4 @@
 from django.db import models
-from django.utils import timezone
-
 from apps.core.models import SoftDeleteModel
 from apps.users.models import User
 from apps.weather.models import WeatherData
@@ -34,7 +32,7 @@ class Diary(SoftDeleteModel):
         choices=SATISFACTION_CHOICES, help_text="오늘의 기분 점수 (0~3)"
     )
     title = models.CharField(max_length=255)
-    notes = models.TextField()
+    notes = models.TextField(blank=True)
     image_url = models.URLField(
         max_length=255, blank=True, null=True
     )  # 이미지 없이 저장해도 가능 - 에러발생 X
