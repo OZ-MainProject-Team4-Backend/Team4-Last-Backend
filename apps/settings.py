@@ -136,8 +136,10 @@ AUTH_PASSWORD_VALIDATORS = [
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        "LOCATION": "redis://redis:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
     }
 }
 
@@ -233,7 +235,7 @@ EMAIL_PORT = 465
 EMAIL_USE_SSL = True
 EMAIL_USE_TLS = False
 EMAIL_HOST_USER = "qkralstn8070@naver.com"
-EMAIL_HOST_PASSWORD = "GZT4HV1E33RH"
+EMAIL_HOST_PASSWORD = "N5TDU5WD5T7B"
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
