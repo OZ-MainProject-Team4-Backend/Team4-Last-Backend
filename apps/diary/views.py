@@ -14,7 +14,7 @@ from .serializers import (
 
 class DiaryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = Diary.objects.filter(is_deleted=False)
+    queryset = Diary.objects.filter(deleted_at__isnull=True)
 
     #  액션별 serializer 분기
     def get_serializer_class(self):
@@ -31,7 +31,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
     #  본인 일기만
     def get_queryset(self):
         user = self.request.user
-        queryset = Diary.objects.filter(user=user, is_deleted=False)
+        queryset = Diary.objects.filter(user=user, deleted_at__isnull=True)
         year = self.request.query_params.get("year")
         month = self.request.query_params.get("month")
 
