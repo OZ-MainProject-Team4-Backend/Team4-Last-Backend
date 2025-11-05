@@ -7,11 +7,11 @@ from django.contrib.auth import get_user_model, login, logout
 from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
 
 from .models import SocialAccount
 from .serializers import (
@@ -564,7 +564,9 @@ class SocialUnlinkView(APIView):
                 {"message": "소셜 계정 해제 완료"}, status=status.HTTP_200_OK
             )
         except SocialAccount.DoesNotExist:
-            logger.warning(f"Social account not found: {provider} - {request.user.email}")
+            logger.warning(
+                f"Social account not found: {provider} - {request.user.email}"
+            )
             return Response(
                 {"error": "연결된 소셜 계정 없음"}, status=status.HTTP_404_NOT_FOUND
             )
