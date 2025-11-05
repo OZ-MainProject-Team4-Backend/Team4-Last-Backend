@@ -28,6 +28,8 @@ class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
             "updated_at",
         ]
 
+        read_only_fields = ["created_at", "updated_at"]
+
 
 class DiaryCreateSerializer(serializers.ModelSerializer):
     class Meta:
