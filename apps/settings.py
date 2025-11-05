@@ -223,6 +223,7 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     # Swagger UI에서 인증 없이 볼 수 있게
+    "SCHEMA_PATH_PREFIX": "/api",
     'SWAGGER_UI_SETTINGS': {
         'persistAuthorization': False,
     },
