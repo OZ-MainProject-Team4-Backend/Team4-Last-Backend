@@ -162,6 +162,37 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+#소셜로그인
+SOCIAL_PROVIDERS = {
+    "kakao": {
+        "name": "카카오",
+        "client_id": os.environ.get("KAKAO_CLIENT_ID"),
+        "client_secret": os.environ.get("KAKAO_CLIENT_SECRET"),  # 선택사항
+        "auth_url": "https://kauth.kakao.com/oauth/authorize",
+        "token_url": "https://kauth.kakao.com/oauth/token",
+        "user_info_url": "https://kapi.kakao.com/v2/user/me",
+        "redirect_uri": "http://localhost:8000/api/social/kakao/callback",
+    },
+    "naver": {
+        "name": "네이버",
+        "client_id": os.environ.get("NAVER_CLIENT_ID"),
+        "client_secret": os.environ.get("NAVER_CLIENT_SECRET"),
+        "auth_url": "https://nid.naver.com/oauth2.0/authorize",
+        "token_url": "https://nid.naver.com/oauth2.0/token",
+        "user_info_url": "https://openapi.naver.com/v1/nid/me",
+        "redirect_uri": "http://localhost:8000/api/social/naver/callback",
+    },
+    "google": {
+        "name": "구글",
+        "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
+        "client_secret": os.environ.get("GOOGLE_CLIENT_SECRET"),
+        "auth_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": "https://oauth2.googleapis.com/token",
+        "user_info_url": "https://www.googleapis.com/oauth2/v2/userinfo",
+        "redirect_uri": "http://localhost:8000/api/social/google/callback",
+        "scope": "openid email profile",
+    },
+}
 
 # EMAIL
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

@@ -18,6 +18,8 @@ dependencies = [
     "django-filter==25.2",
     "django-redis>=6.0.0",
     "django-restframework==0.0.1",
+    "django-stubs>=5.2.7",
+    "django-stubs-ext>=5.2.7",
     "djangorestframework==3.16.1",
     "djangorestframework-simplejwt[blacklist]==5.5.1",
     "dotenv==0.9.9",
