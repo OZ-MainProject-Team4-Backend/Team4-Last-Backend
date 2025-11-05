@@ -24,7 +24,7 @@ class DiaryViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="내 일기 목록 조회",
         description=(
-                "로그인한 사용자의 일기를 연도(year)와 월(month)로 필터링하여 조회합니다."
+            "로그인한 사용자의 일기를 연도(year)와 월(month)로 필터링하여 조회합니다."
         ),
         parameters=[
             OpenApiParameter(
@@ -90,7 +90,12 @@ class DiaryViewSet(viewsets.ViewSet):
             ),
             400: OpenApiResponse(
                 description="작성 실패",
-                response={"example": {"error": "작성 실패", "error_status": "diary_create_failed"}},
+                response={
+                    "example": {
+                        "error": "작성 실패",
+                        "error_status": "diary_create_failed",
+                    }
+                },
             ),
         },
     )
@@ -141,7 +146,7 @@ class DiaryViewSet(viewsets.ViewSet):
             diary = serializer.save()
             return Response(
                 {"message": "수정 완료", "data": DiaryDetailSerializer(diary).data},
-                status=status.HTTP_200_OK
+                status=status.HTTP_200_OK,
             )
         return Response(
             {
@@ -159,7 +164,9 @@ class DiaryViewSet(viewsets.ViewSet):
             204: OpenApiResponse(description="삭제 완료"),
             400: OpenApiResponse(
                 description="삭제 실패",
-                response={"example": {"error": "삭제 실패", "error_status": "delete_failed"}},
+                response={
+                    "example": {"error": "삭제 실패", "error_status": "delete_failed"}
+                },
             ),
         },
     )
@@ -173,4 +180,3 @@ class DiaryViewSet(viewsets.ViewSet):
                 {"error": "삭제 실패", "error_status": "delete_failed"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
