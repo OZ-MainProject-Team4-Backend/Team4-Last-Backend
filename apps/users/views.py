@@ -83,7 +83,7 @@ class NicknameValidateView(APIView):
             nickname__iexact=nickname, deleted_at__isnull=True
         ).exists():
             return Response(
-                {"error": "닉네임 중복 또는 형식 불가"},
+                {"error": "이미 사용 중인 닉네임입니다."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -524,6 +524,36 @@ class SocialCallbackView(APIView):
         except Exception as e:
             logger.exception(f"Social callback error: {str(e)}")
             return redirect("http://localhost:3000/login/failed")
+
+#소셜 로그인 과정에서 자동 회원가입 / 로그인 기능
+#기존의 가입한 유저는 소셜 연동 누를시 소셜로 로그인 가능
+class SocialAuthServiceView(APIView):
+    permission_classes = [AllowAny]
+    @staticmethod
+    def get_or_create_user_from_social(provider, social_user_info):
+        email = social_user_info.get("email")
+        nickname = social_user_info.get("nickname") or (email.split("@")[0] if email else None)
+
+        if not email:
+            raise ValueError("이메일 정보가 필요합니다.")
+
+        try:
+            user = User.objects.get(email__iexact=email)
+            return user
+        except User.DoesNotExist:
+            # 닉네임 중복 처리
+            base_nickname = nickname
+            suffix = 1
+            while User.objects.filter(nickname__iexact=nickname).exists():
+                nickname = f"{base_nickname}{suffix}"
+                suffix += 1
+
+            user = User.objects.create_user(
+                email=email,
+                nickname=nickname,
+                email_verified=True,
+            )
+            return user
 
 
 class SocialLinkView(APIView):
