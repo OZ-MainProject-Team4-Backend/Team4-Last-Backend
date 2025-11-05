@@ -12,12 +12,15 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from typing import TypedDict
 
 import environ
 from dotenv import load_dotenv
 
 ENV_FILE = os.environ.get("ENV_FILE", "env/.env")
 load_dotenv(dotenv_path=ENV_FILE)
+OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
+print("openweather key loaded :", bool(OPENWEATHER_API_KEY))
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -204,8 +207,15 @@ EMAIL_HOST_USER = "qkralstn8070@naver.com"
 EMAIL_HOST_PASSWORD = "GZT4HV1E33RH"
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-OPENWEATHER = {
-    "API_KEY": env("OPENWEATHER_API_KEY", default=os.getenv("OPENWEATHER_API_KEY", "")),
-    "BASE_DIR": env("OPENWEATHER_BASE_DIR", default="https://api.openweathermap.org"),
-    "TIMEOUT": env.int("OPENWEATHER_TIMEOUT", default=5),
+
+class OpenWeatherConf(TypedDict):
+    BASE_URL: str
+    API_KEY: str
+    TIMEOUT: int
+
+
+OPENWEATHER: OpenWeatherConf = {
+    "BASE_URL": "https://api.openweathermap.org",
+    "API_KEY": os.getenv("OPENWEATHER_API_KEY", ""),
+    "TIMEOUT": 5,
 }
