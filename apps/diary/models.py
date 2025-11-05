@@ -1,27 +1,11 @@
 from django.db import models
 from django.utils import timezone
-
+from apps.core.models import SoftDeleteModel
 from apps.users.models import User
 from apps.weather.models import WeatherData
 
 
-class SoftDeleteMixin(models.Model):  # Soft Delete
-
-    deleted_at = models.DateTimeField(blank=True, null=True)  # 삭제 시각 (Soft Delete)
-
-    class Meta:
-        abstract = True  # DB 테이블 생성 안 함
-
-    def delete(self, using=None, keep_parents=False):
-        self.deleted_at = timezone.now()  # 실제 삭제 대신 삭제 시각 기록
-        self.save(update_fields=["deleted_at"])
-
-    def restore(self):
-        self.deleted_at = None  # 삭제 복구
-        self.save(update_fields=["deleted_at"])
-
-
-class Diary(SoftDeleteMixin, models.Model):
+class Diary(SoftDeleteModel):
 
     SATISFACTION_CHOICES = [
         (0, "😔 별로예요"),
@@ -31,9 +15,18 @@ class Diary(SoftDeleteMixin, models.Model):
     ]
 
     id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    date = models.DateField()
-    weather_data = models.ForeignKey(WeatherData, on_delete=models.SET_NULL, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE,
+                             related_name="diaries",
+                             verbose_name="작성자",)
+    date = models.DateField(
+        verbose_name="작성 날짜")
+    weather_data = models.ForeignKey(
+        WeatherData,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="diaries"
+    )
     satisfaction = models.IntegerField(
         choices=SATISFACTION_CHOICES, help_text="오늘의 기분 점수 (0~3)"
     )
