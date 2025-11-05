@@ -136,6 +136,8 @@ class SignupSerializer(serializers.ModelSerializer):
             extra["gender"] = gender_choice
 
         email = validated_data.get("email")
+        if not isinstance(email, str):
+            raise serializers.ValidationError({"email": "이메일이 누락되었습니다."})
 
         try:
             user = User.objects.create_user(email, raw_pw, **extra)
@@ -239,3 +241,4 @@ class SocialLinkSerializer(serializers.Serializer):
 
 class SocialUnlinkSerializer(serializers.Serializer):
     pass
+
