@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from ..weather.serializers import WeatherDataSerializer
+from apps.weather.serializers import WeatherDataSerializer
+
 from .models import Diary
 
 

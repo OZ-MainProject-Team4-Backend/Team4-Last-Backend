@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.weather.models import WeatherData
+
 
 class CurrentQuerySerializer(serializers.Serializer):
     city = serializers.CharField(required=False, allow_blank=True)
@@ -32,3 +34,21 @@ class HistoryQuerySerializer(serializers.Serializer):
         if not attrs.get("location_id") and not ("lat" in attrs and "lon" in attrs):
             raise serializers.ValidationError("location_id 또는 lat/lon 중 하나는 필수")
         return attrs
+
+
+class WeatherDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WeatherData
+        fields = [
+            "id",
+            "base_time",
+            "valid_time",
+            "temperature",
+            "feels_like",
+            "humidity",
+            "rain_probability",
+            "rain_volume",
+            "wind_speed",
+            "condition",
+            "icon",
+        ]
