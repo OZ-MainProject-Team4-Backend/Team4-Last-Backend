@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model, login, logout
 from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -23,6 +24,7 @@ from .serializers import (
     SocialLinkSerializer,
     SocialLoginSerializer,
     SocialUnlinkSerializer,
+    UserDeleteSerializer,
     UserProfileSerializer,
 )
 from .services.social_auth_service import SocialAuthService
@@ -35,8 +37,6 @@ from .utils.social_auth import (
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
-
-# 캐시 키 헬퍼
 
 
 def key_verif(email: str) -> str:
@@ -59,24 +59,23 @@ def key_nickname_valid(nickname: str) -> str:
     return f"nickname_valid:{nickname.lower()}"
 
 
-# 설정해놓은 TTL값
-EMAIL_VERIF_CODE_TTL = 300  # 5분
-EMAIL_PREVER_TTL = 1800  # 30분
-EMAIL_VERIF_RESEND_TTL = 60  # 1분
+EMAIL_VERIF_CODE_TTL = 300
+EMAIL_PREVER_TTL = 1800
+EMAIL_VERIF_RESEND_TTL = 60
 EMAIL_VERIF_MAX_PER_HOUR = 5
 
 
-# 인증 코드 생성
 def gen_code(n=6) -> str:
     return "".join(str(random.randint(0, 9)) for _ in range(n))
 
 
-# 닉네임 검증
 class NicknameValidateView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = NicknameValidateSerializer
 
+    @extend_schema(request=NicknameValidateSerializer, responses={200: dict})
     def post(self, request):
-        serializer = NicknameValidateSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         nickname = serializer.validated_data["nickname"].strip()
 
@@ -92,12 +91,13 @@ class NicknameValidateView(APIView):
         return Response({"message": "닉네임 사용가능"}, status=status.HTTP_200_OK)
 
 
-# 이메일 인증 코드 발송
 class EmailSendView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = EmailSendSerializer
 
+    @extend_schema(request=EmailSendSerializer, responses={200: dict})
     def post(self, request):
-        serializer = EmailSendSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"].strip().lower()
 
@@ -141,12 +141,13 @@ class EmailSendView(APIView):
         return Response({"message": "인증 코드 발송완료"}, status=status.HTTP_200_OK)
 
 
-# 이메일 인증 코드 검정
 class EmailVerifyView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = EmailVerifySerializer
 
+    @extend_schema(request=EmailVerifySerializer, responses={200: dict})
     def post(self, request):
-        serializer = EmailVerifySerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"].strip().lower()
         code = serializer.validated_data["code"].strip()
@@ -157,18 +158,18 @@ class EmailVerifyView(APIView):
                 {"error": "코드 만료 또는 불일치"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 인증 성공
         cache.delete(key_verif(email))
         cache.set(key_preverified(email), True, timeout=EMAIL_PREVER_TTL)
         return Response({"message": "이메일 인증 완료"}, status=status.HTTP_200_OK)
 
 
-# 회원가입
 class SignUpView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = SignupSerializer
 
+    @extend_schema(request=SignupSerializer, responses={201: dict})
     def post(self, request):
-        serializer = SignupSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data.get("email").strip().lower()
@@ -211,12 +212,13 @@ class SignUpView(APIView):
         )
 
 
-# 로그인
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = LoginSerializer
 
+    @extend_schema(request=LoginSerializer, responses={200: dict})
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data["user"]
@@ -242,19 +244,20 @@ class LoginView(APIView):
         )
 
 
-# 로그아웃
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = None
 
+    @extend_schema(responses={204: None})
     def post(self, request):
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# 마이페이지
 class MyPageView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: dict})
     def get(self, request):
         u = request.user
         data = {
@@ -265,13 +268,14 @@ class MyPageView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-# 프로필 수정
 class ProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = UserProfileSerializer
 
+    @extend_schema(request=UserProfileSerializer, responses={200: dict})
     def patch(self, request):
         user = request.user
-        serializer = UserProfileSerializer(
+        serializer = self.serializer_class(
             instance=user, data=request.data, partial=True, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
@@ -301,10 +305,10 @@ class ProfileUpdateView(APIView):
         return Response({"message": "프로필 수정 완료"}, status=status.HTTP_200_OK)
 
 
-# 이메일 변경 코드 검증(로그인 필요)
 class EmailChangeVerifyView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=EmailVerifySerializer, responses={200: dict})
     def post(self, request):
         user = request.user
         new_email = (request.data.get("email") or "").strip().lower()
@@ -332,9 +336,11 @@ class EmailChangeVerifyView(APIView):
 
 class PasswordChangeView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = PasswordChangeSerializer
 
+    @extend_schema(request=PasswordChangeSerializer, responses={200: dict})
     def patch(self, request):
-        serializer = PasswordChangeSerializer(
+        serializer = self.serializer_class(
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
@@ -342,35 +348,36 @@ class PasswordChangeView(APIView):
         return Response({"message": "비밀번호 변경 완료"}, status=status.HTTP_200_OK)
 
 
-# 소셜 로그인
+class UserDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserDeleteSerializer
+
+    @extend_schema(request=UserDeleteSerializer, responses={200: dict})
+    def delete(self, request):
+        user = request.user
+
+        if user.deleted_at:
+            return Response(
+                {"error": "이미 탈퇴한 계정입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.deleted_at = timezone.now()
+        user.is_active = False
+        user.save(update_fields=["deleted_at", "is_active"])
+
+        logout(request)
+
+        logger.info(f"User deleted: {user.email}")
+
+        return Response({"deleted": True}, status=status.HTTP_200_OK)
+
+
 class SocialLoginView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = SocialLoginSerializer
 
-    def get(self, request, provider):
-        if provider not in settings.SOCIAL_PROVIDERS:
-            return Response({"error": "지원하지 않는 소셜 로그인"}, status=400)
-
-        config = settings.SOCIAL_PROVIDERS[provider]
-        params = {
-            "client_id": config["client_id"],
-            "redirect_uri": config["redirect_uri"],
-            "response_type": "code",
-        }
-
-        if provider == "google":
-            params["scope"] = config["scope"]
-
-        if provider == "naver":
-            import secrets
-
-            state = secrets.token_urlsafe(16)
-            request.session["oauth_state"] = state
-            params["state"] = state
-
-        # 소셜 로그인 페이지로 리다이렉트
-        auth_url = f"{config['auth_url']}?{urlencode(params)}"
-        return redirect(auth_url)
-
+    @extend_schema(request=SocialLoginSerializer, responses={200: dict})
     def post(self, request, provider):
         if provider not in settings.SOCIAL_PROVIDERS:
             return Response(
@@ -378,7 +385,7 @@ class SocialLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = SocialLoginSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         access_token = serializer.validated_data["token"]
 
@@ -431,6 +438,7 @@ class SocialLoginView(APIView):
 class SocialCallbackView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(responses={302: None})
     def get(self, request, provider):
         if provider not in settings.SOCIAL_PROVIDERS:
             return Response({"error": "지원하지 않는 소셜 로그인"}, status=400)
@@ -441,7 +449,6 @@ class SocialCallbackView(APIView):
         if not code:
             return Response({"error": "인증 코드 없음"}, status=400)
 
-        # 네이버 state 검증
         if provider == "naver":
             state = request.GET.get("state")
             session_state = request.session.get("oauth_state")
@@ -449,7 +456,6 @@ class SocialCallbackView(APIView):
                 return Response({"error": "state 불일치"}, status=400)
 
         try:
-            # 1. code로 access_token 교환
             token_data = {
                 "grant_type": "authorization_code",
                 "client_id": config["client_id"],
@@ -458,7 +464,9 @@ class SocialCallbackView(APIView):
                 "redirect_uri": config["redirect_uri"],
             }
 
-            token_response = request.post(
+            import requests
+
+            token_response = requests.post(
                 config["token_url"], data=token_data, timeout=5
             )
 
@@ -468,8 +476,6 @@ class SocialCallbackView(APIView):
 
             token_json = token_response.json()
             access_token = token_json.get("access_token")
-
-            from django.contrib.sites import requests
 
             user_info_response = requests.get(
                 config["user_info_url"],
@@ -519,10 +525,11 @@ class SocialCallbackView(APIView):
             return redirect("http://localhost:3000/login/failed")
 
 
-# 카카오, 구글 ,네이버로 정해져있지만 로그와 잘못된 provider 요청을 알기 위한 코드
 class SocialLinkView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = SocialLinkSerializer
 
+    @extend_schema(request=SocialLinkSerializer, responses={200: dict})
     def post(self, request, provider):
         if provider not in settings.SOCIAL_PROVIDERS:
             return Response(
@@ -530,7 +537,7 @@ class SocialLinkView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = SocialLinkSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         access_token = serializer.validated_data["token"]
 
@@ -567,7 +574,9 @@ class SocialLinkView(APIView):
 
 class SocialUnlinkView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = SocialUnlinkSerializer
 
+    @extend_schema(responses={200: dict})
     def delete(self, request, provider):
         if provider not in settings.SOCIAL_PROVIDERS:
             return Response(
@@ -576,22 +585,17 @@ class SocialUnlinkView(APIView):
             )
         try:
             SocialAuthService.unlink_social_account(request.user, provider)
-
             logger.info(f"Social account unlinked: {provider} - {request.user.email}")
-
             return Response(
                 {"message": "소셜 계정 해제 완료"}, status=status.HTTP_200_OK
             )
-
         except SocialAccount.DoesNotExist:
             logger.warning(
                 f"Social account not found: {provider} - {request.user.email}"
             )
-
             return Response(
                 {"error": "연결된 소셜 계정 없음"}, status=status.HTTP_404_NOT_FOUND
             )
-
         except Exception as e:
             logger.exception(f"Social unlink unexpected error: {str(e)}")
             return Response(
