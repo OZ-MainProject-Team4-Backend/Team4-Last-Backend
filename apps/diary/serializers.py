@@ -8,7 +8,6 @@ class DiaryListSerializer(serializers.ModelSerializer):  # 목록조회
         model = Diary
         fields = ["id", "date", "title"]
 
-
 class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
     weather = ForecastQuerySerializer(source="weather_data",read_only=True)
 
@@ -39,7 +38,6 @@ class DiaryUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Diary
         fields = ["title", "satisfaction", "notes", "image_url", "weather_data"]  # date 제외
-
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
