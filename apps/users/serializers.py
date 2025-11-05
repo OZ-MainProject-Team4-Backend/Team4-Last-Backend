@@ -88,6 +88,7 @@ class SignupSerializer(serializers.ModelSerializer):
         required=False, allow_blank=True, validators=[phone_validator]
     )
     password_confirm = serializers.CharField(write_only=True)
+    nickname = serializers.CharField(required=False, allow_blank=True, max_length=20)
 
     class Meta:
         model = User
@@ -104,7 +105,6 @@ class SignupSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "password": {"write_only": True},
             "email": {"required": True},
-            "nickname": {"required": True},
         }
 
     def validate(self, data: Dict):
@@ -115,13 +115,24 @@ class SignupSerializer(serializers.ModelSerializer):
                 {"password_confirm": "비밀번호가 일치하지 않습니다."}
             )
 
-        if not pw or len(pw) < 8:
+        if not pw or len(pw) < 6 or len(pw) > 20:
             raise serializers.ValidationError(
-                {"password": "비밀번호는 최소 8자 이상이어야 합니다."}
+                {"password": "비밀번호는 6자 이상 20자 이하로 입력해야 합니다."}
             )
+
         if " " in pw:
             raise serializers.ValidationError(
                 {"password": "비밀번호에 공백을 포함할 수 없습니다."}
+            )
+
+        if not any(c.islower() for c in pw) or not any(c.isupper() for c in pw):
+            raise serializers.ValidationError(
+                {"password": "비밀번호는 영어 대문자와 소문자를 조합해야 합니다."}
+            )
+
+        if not all(c.isalpha() for c in pw):
+            raise serializers.ValidationError(
+                {"password": "비밀번호는 영어만 사용할 수 있습니다."}
             )
 
         email = data.get("email")
@@ -149,10 +160,8 @@ class SignupSerializer(serializers.ModelSerializer):
     def create(self, validated_data: Dict) -> User:
         validated_data.pop("password_confirm", None)
         raw_pw = validated_data.pop("password")
-
         raw_age = validated_data.pop("age", None)
         raw_gender = validated_data.pop("gender", None)
-
         age_group = map_age_to_group(raw_age)
         gender_choice = map_gender(raw_gender)
 
@@ -199,7 +208,6 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         email = data.get("email")
         password = data.get("password")
-
         user = authenticate(email=email, password=password)
         if user is None:
             raise serializers.ValidationError(
@@ -227,31 +235,34 @@ class PasswordChangeSerializer(serializers.Serializer):
         request = self.context.get("request")
         if request is None or not hasattr(request, "user"):
             raise serializers.ValidationError("요청 정보가 올바르지 않습니다.")
-
         user = request.user
-
         if not user.check_password(attrs.get("current_password", "")):
             raise serializers.ValidationError(
                 {"current_password": "현재 비밀번호가 일치하지 않습니다."}
             )
-
         if attrs.get("new_password") != attrs.get("new_password_confirm"):
             raise serializers.ValidationError(
                 {
                     "new_password_confirm": "새 비밀번호와 확인 비밀번호가 일치하지 않습니다."
                 }
             )
-
         new_pw = attrs.get("new_password")
-        if not new_pw or len(new_pw) < 8:
+        if not new_pw or len(new_pw) < 6 or len(new_pw) > 20:
             raise serializers.ValidationError(
-                {"new_password": "비밀번호는 최소 8자 이상이어야 합니다."}
+                {"new_password": "비밀번호는 6자 이상 20자 이하로 입력해야 합니다."}
             )
         if " " in new_pw:
             raise serializers.ValidationError(
                 {"new_password": "비밀번호에 공백을 포함할 수 없습니다."}
             )
-
+        if not any(c.islower() for c in new_pw) or not any(c.isupper() for c in new_pw):
+            raise serializers.ValidationError(
+                {"new_password": "비밀번호는 영어 대문자와 소문자를 조합해야 합니다."}
+            )
+        if not all(c.isalpha() for c in new_pw):
+            raise serializers.ValidationError(
+                {"new_password": "비밀번호는 영어만 사용할 수 있습니다."}
+            )
         return attrs
 
     def save(self, **kwargs):
