@@ -1,72 +1,101 @@
-from drf_spectacular.utils import OpenApiExample, extend_schema
-from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import status, views
 from rest_framework.response import Response
 
+from apps.locations.models import FavoriteLocation
+
+from .models import OutfitRecommendation
 from .serializers import OutfitRecommendSerializer
 from .services.recommend_service import generate_outfit_recommend
+from .services.weather_service import get_weather_data
 
 
-class OutfitRecommendView(generics.GenericAPIView):
+class OutfitRecommendByLocationView(views.APIView):
     """
-    좌표 기반 복장 추천 API
-    - 사용자 인증 필요
-    - POST 요청 시 위도(latitude), 경도(longitude)를 받아 추천 생성
+    POST /api/recommend/outfit/location
+    사용자 즐겨찾기 지역 기반 복장 추천
     """
 
-    permission_classes = [IsAuthenticated]
-    serializer_class = OutfitRecommendSerializer
-
-    @extend_schema(
-        summary="좌표 기반 복장 추천",
-        description="사용자의 위도, 경도를 기반으로 날씨에 맞는 코디 3종을 추천합니다.",
-        request={
-            "application/json": {
-                "latitude": 37.5665,
-                "longitude": 126.9780,
-            }
-        },
-        responses={
-            201: OutfitRecommendSerializer,
-            400: {
-                "type": "object",
-                "properties": {
-                    "error_code": {"type": "string"},
-                    "message": {"type": "string"},
-                },
-                "example": {
-                    "error_code": "invalid_params",
-                    "message": "위도 또는 경도 누락",
-                },
-            },
-        },
-        examples=[
-            OpenApiExample(
-                "성공 예시",
-                summary="정상 응답 예시",
-                value={
-                    "recommendations": ["니트 + 데님", "후드 + 조거", "셔츠 + 슬랙스"],
-                    "explanation": "오늘은 맑고 선선한 날씨라 가벼운 니트를 추천드려요!",
-                },
-                response_only=True,
-            )
-        ],
-    )
     def post(self, request):
-        latitude = request.data.get("latitude")
-        longitude = request.data.get("longitude")
-        user = request.user
+        city = request.data.get("city")
+        district = request.data.get("district")
 
-        # 좌표 누락 시 에러 처리
-        if not latitude or not longitude:
+        # 입력값 검증
+        if not city or not district:
             return Response(
-                {"error_code": "invalid_params", "message": "위도 또는 경도 누락"},
+                {"error_code": "invalid_params", "message": "city 또는 district 누락"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # 추천 생성
-        reco = generate_outfit_recommend(user, latitude, longitude)
+        # 즐겨찾기 위치 검색 (Soft Delete 제외)
+        location = FavoriteLocation.objects.filter(
+            city=city, district=district, deleted_at__isnull=True
+        ).first()
+        if not location:
+            return Response(
+                {
+                    "error_code": "location_not_found",
+                    "message": f"{city} {district} 지역을 찾을 수 없습니다.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-        # 직렬화 후 반환함
-        serializer = self.get_serializer(reco)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # 날씨 조회 (좌표 정보 없으니 일단 기본 좌표 사용함)
+        weather = get_weather_data(latitude=37.5665, longitude=126.9780)
+
+        # 룰 기반 복장 추천
+        outfit_data = generate_outfit_recommend(request.user, 37.5665, 126.9780)
+
+        # 추천 결과 저장
+        rec = OutfitRecommendation.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            weather_data=None,
+            rec_1=outfit_data["rec_1"],
+            rec_2=outfit_data["rec_2"],
+            rec_3=outfit_data["rec_3"],
+            explanation=outfit_data["explanation"],
+        )
+
+        # 직렬화 후 반환
+        serializer = OutfitRecommendSerializer(rec)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class OutfitRecommendByCoordsView(views.APIView):
+    """
+    POST /api/recommend/outfit/coords
+    좌표 기반 복장 추천
+    """
+
+    def post(self, request):
+        latitude = request.data.get("latitude")
+        longitude = request.data.get("longitude")
+
+        # 입력값 검증
+        if not latitude or not longitude:
+            return Response(
+                {
+                    "error_code": "invalid_params",
+                    "message": "위도 또는 경도가 누락되었습니다.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 날씨 조회
+        weather = get_weather_data(float(latitude), float(longitude))
+
+        # 룰 기반 복장 추천 생성
+        outfit_data = generate_outfit_recommend(request.user, latitude, longitude)
+
+        # 추천 결과 저장
+        rec = OutfitRecommendation.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            weather_data=None,
+            rec_1=outfit_data["rec_1"],
+            rec_2=outfit_data["rec_2"],
+            rec_3=outfit_data["rec_3"],
+            explanation=outfit_data["explanation"],
+        )
+
+        # 직렬화 후 반환
+        serializer = OutfitRecommendSerializer(rec)
+        return Response(serializer.data, status=status.HTTP_200_OK)
