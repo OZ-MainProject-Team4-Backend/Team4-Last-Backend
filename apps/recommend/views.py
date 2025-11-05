@@ -2,6 +2,7 @@ from rest_framework import status, views
 from rest_framework.response import Response
 
 from apps.locations.models import FavoriteLocation
+from apps.weather.models import WeatherLocation
 
 from .models import OutfitRecommendation
 from .serializers import OutfitRecommendSerializer
@@ -26,24 +27,37 @@ class OutfitRecommendByLocationView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # 즐겨찾기 위치 검색 (Soft Delete 제외)
+        # 즐겨찾기 위치 확인 (Soft Delete 제외)
         location = FavoriteLocation.objects.filter(
             city=city, district=district, deleted_at__isnull=True
         ).first()
         if not location:
             return Response(
                 {
-                    "error_code": "location_not_found",
-                    "message": f"{city} {district} 지역을 찾을 수 없습니다.",
+                    "error_code": "favorite_not_found",
+                    "message": f"{city} {district} 지역의 즐겨찾기 정보가 없습니다.",
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # 날씨 조회 (좌표 정보 없으니 일단 기본 좌표 사용함)
-        weather = get_weather_data(latitude=37.5665, longitude=126.9780)
+        # WeatherLocation 테이블에서 해당 지역의 위도/경도 조회
+        weather_loc = WeatherLocation.objects.filter(city=city, district=district).first()
+        if not weather_loc:
+            return Response(
+                {
+                     "error_code": "location_not_found",
+                    "message": f"{city} {district} 지역의 좌표 정보를 찾을 수 없습니다.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-        # 룰 기반 복장 추천
-        outfit_data = generate_outfit_recommend(request.user, 37.5665, 126.9780)
+        # 실제 위도/경도로 날씨 조회
+        weather = get_weather_data(latitude=weather_loc.lat, longitude=weather_loc.lon)
+
+        # 룰 기반 복장 추천 생성
+        outfit_data = generate_outfit_recommend(
+            request.user, weather_loc.lat, weather_loc.lon
+        )
 
         # 추천 결과 저장
         rec = OutfitRecommendation.objects.create(
