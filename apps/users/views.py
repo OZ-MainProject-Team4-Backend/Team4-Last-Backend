@@ -261,9 +261,11 @@ class MyPageView(APIView):
     def get(self, request):
         u = request.user
         data = {
+            "id": u.id,
             "email": u.email,
             "nickname": u.nickname,
-            "is_verified": getattr(u, "email_verified", False),
+            "gender": u.gender,
+            "age_group": u.age_group,  # 또는 age로 변경
         }
         return Response(data, status=status.HTTP_200_OK)
 
