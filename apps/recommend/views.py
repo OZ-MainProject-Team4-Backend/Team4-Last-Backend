@@ -41,11 +41,13 @@ class OutfitRecommendByLocationView(views.APIView):
             )
 
         # WeatherLocation 테이블에서 해당 지역의 위도/경도 조회
-        weather_loc = WeatherLocation.objects.filter(city=city, district=district).first()
+        weather_loc = WeatherLocation.objects.filter(
+            city=city, district=district
+        ).first()
         if not weather_loc:
             return Response(
                 {
-                     "error_code": "location_not_found",
+                    "error_code": "location_not_found",
                     "message": f"{city} {district} 지역의 좌표 정보를 찾을 수 없습니다.",
                 },
                 status=status.HTTP_404_NOT_FOUND,
