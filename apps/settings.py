@@ -22,7 +22,7 @@ load_dotenv(dotenv_path=ENV_FILE)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
-ENV_PATH = os.path.join(BASE_DIR, ".env")
+ENV_PATH = os.path.join(BASE_DIR, "env/.env")
 if os.path.exists(ENV_PATH):
     environ.Env.read_env(ENV_PATH)
 

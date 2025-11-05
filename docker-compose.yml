@@ -4,9 +4,9 @@ services:
     container_name: last-AWS
     restart: always
     env_file:
-      - env/.env
+      - ./env/.env
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
       - postgres_data_aws:/var/lib/postgresql/data
 
@@ -16,13 +16,18 @@ services:
     restart: always
 
     env_file:
-      - env/.env
+      - ./env/.env
     ports:
       - "8000:8000"
     depends_on:
       - last-AWS-db
+      - redis
     volumes:
       - .:/last-AWS
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
 
 volumes:
   postgres_data_aws:
