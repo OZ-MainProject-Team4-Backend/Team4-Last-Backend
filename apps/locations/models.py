@@ -1,6 +1,7 @@
 # apps/locations/models.py
 from django.conf import settings
 from django.db import models
+
 from apps.core.models import SoftDeleteModel
 
 
@@ -25,11 +26,11 @@ class FavoriteLocation(SoftDeleteModel):
         blank=True,
         null=True,
     )
-    city = models.CharField(max_length=50) # 시/도 (예: 서울시)
-    district = models.CharField(max_length=50) # 구 (예: 강남구)
-    is_default = models.BooleanField(default=False) # 기본 위치 여부 (1개만 True 가능)
-    created_at = models.DateTimeField(auto_now_add=True) # 생성 시각
-    updated_at = models.DateTimeField(auto_now=True) # 수정 시각
+    city = models.CharField(max_length=50)  # 시/도 (예: 서울시)
+    district = models.CharField(max_length=50)  # 구 (예: 강남구)
+    is_default = models.BooleanField(default=False)  # 기본 위치 여부 (1개만 True 가능)
+    created_at = models.DateTimeField(auto_now_add=True)  # 생성 시각
+    updated_at = models.DateTimeField(auto_now=True)  # 수정 시각
 
     class Meta:
         db_table = "favorite_locations"
@@ -47,9 +48,7 @@ class FavoriteLocation(SoftDeleteModel):
                 name="uq_default_favorite_per_user",
             ),
         ]
-        indexes = [
-            models.Index(fields=["user", "is_default"])
-        ]
+        indexes = [models.Index(fields=["user", "is_default"])]
         verbose_name = "즐겨찾기 위치"
         verbose_name_plural = "즐겨찾기 위치 목록"
 

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from .models import FavoriteLocation
 
 
@@ -21,6 +22,9 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
     def validate_is_default(self, value):
         """사용자당 기본 위치는 하나만 허용"""
         user = self.context["request"].user
-        if value and FavoriteLocation.objects.filter(user=user, is_default=True).exists():
+        if (
+            value
+            and FavoriteLocation.objects.filter(user=user, is_default=True).exists()
+        ):
             raise serializers.ValidationError("이미 기본 위치가 설정되어 있습니다.")
         return value
