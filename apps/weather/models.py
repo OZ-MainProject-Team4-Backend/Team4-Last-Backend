@@ -71,7 +71,3 @@ class WeatherData(models.Model):
             models.Index(fields=["location", "-valid_time"], name="idx_loc_valid_desc"),
         ]
         ordering = ["-valid_time"]
-
-    def __str__(self):
-        vt = self.valid_time.strftime("%Y-%m-%d %H:%M") if self.valid_time else "-"
-        return f"{self.location} - {vt}"
