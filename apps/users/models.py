@@ -4,6 +4,7 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 
@@ -50,11 +51,28 @@ class User(AbstractBaseUser, PermissionsMixin):
         ("0", "기타"),
     )
 
+    # phone validator: 숫자, +, - 허용, 9~20자
+    phone_validator = RegexValidator(
+        regex=r'^[0-9+\-]{9,20}$',
+        message="전화번호 형식이 올바르지 않습니다. (숫자, +, - 허용, 9~20자리)"
+    )
+
     id = models.AutoField(primary_key=True)
     email = models.EmailField(max_length=150, unique=True, null=False, db_index=True)
     password = models.CharField(max_length=255)
     name = models.CharField(max_length=100, blank=True, null=True)
     nickname = models.CharField(max_length=50, blank=True, null=True, db_index=True)
+
+    # 추가된 필드: phone
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        db_index=True,
+        validators=[phone_validator],
+        help_text="국가번호 포함 가능. 숫자, +, - 허용"
+    )
+
     gender = models.CharField(
         max_length=10, choices=GENDER_CHOICES, blank=True, null=True
     )
@@ -86,6 +104,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         indexes = [
             models.Index(fields=["email"]),
             models.Index(fields=["nickname"]),
+            models.Index(fields=["phone"]),
         ]
 
     def __str__(self):
