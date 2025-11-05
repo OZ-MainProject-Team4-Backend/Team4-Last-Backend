@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import TypedDict
 
 import environ
+from django.conf.global_settings import CSRF_TRUSTED_ORIGINS
 from dotenv import load_dotenv
 
 ENV_FILE = os.environ.get("ENV_FILE", "env/.env")
@@ -67,6 +68,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+]
+
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8080', 'http://team4.p-e.kr/']
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
 ]
 
 ROOT_URLCONF = 'apps.urls'
