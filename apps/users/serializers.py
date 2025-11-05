@@ -272,9 +272,12 @@ class PasswordChangeSerializer(serializers.Serializer):
         user.save(update_fields=["password"])
         return user
 
+
 class UserDeleteSerializer(serializers.Serializer):
     """회원탈퇴 - 비밀번호 확인 불필요"""
+
     pass
+
 
 class SocialAccountSerializer(serializers.ModelSerializer):
     class Meta:
