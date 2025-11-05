@@ -29,7 +29,7 @@ class Diary(SoftDeleteModel):
         related_name="diaries",
     )
     satisfaction = models.IntegerField(
-        choices=SATISFACTION_CHOICES, help_text="오늘의 기분 점수 (0~3)"
+        choices=SATISFACTION_CHOICES, default=1,help_text="오늘의 기분 점수 (0~3)" # default 값 = 1
     )
     title = models.CharField(max_length=255)
     notes = models.TextField(blank=True)
