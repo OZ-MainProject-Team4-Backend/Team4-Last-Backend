@@ -22,6 +22,12 @@ class CurrentOut(TypedDict):
     raw: Dict[str, Any]
 
 
+headers = {
+    "User-Agent": "Mozilla/5.0 (compatible; WeatherService/1.0; +http://localhost)",
+    "Accept": "application/json",
+}
+
+
 def _request(
     path: str, params: Dict[str, Any], timeout: int | None = None
 ) -> Dict[str, Any]:
@@ -30,7 +36,7 @@ def _request(
     timeout = timeout or settings.OPENWEATHER.get("TIMEOUT", 5)
     p = {"appid": api_key, "units": "metric", "lang": "kr", **params}
     try:
-        r = requests.get(f"{base}{path}", params=p, timeout=timeout)
+        r = requests.get(f"{base}{path}", params=p, headers=headers, timeout=timeout)
         if r.status_code >= 500:
             raise ProviderError("provider_XXX")
         r.raise_for_status()

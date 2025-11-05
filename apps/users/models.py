@@ -142,3 +142,6 @@ class SocialAccount(models.Model):
 
     def __str__(self):
         return f"{self.provider} - {self.user.email}"
+
+
+##

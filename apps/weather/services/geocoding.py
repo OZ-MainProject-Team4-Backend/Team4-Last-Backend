@@ -1,9 +1,21 @@
+from typing import Any, Iterable, Mapping, TypeAlias, Union
+
 import requests
 from django.conf import settings
 
 
 class GeocodingError(Exception):
     pass
+
+
+ParamScalar = Union[str, bytes, int, float]
+ParamValue = Union[ParamScalar, Iterable[ParamScalar], None]
+RequestsParams: TypeAlias = Mapping[str, ParamValue]
+
+DEFAULT_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; WeatherService/1.0; +http://localhost)",
+    "Accept": "application/json",
+}
 
 
 def build_query(city: str, district: str | None, country_code: str = "KR") -> str:
@@ -15,17 +27,20 @@ def build_query(city: str, district: str | None, country_code: str = "KR") -> st
 
 def geocode_city_district(
     city: str, district: str | None = None, *, timeout: int | None = None
-):
+) -> dict[str, Any] | None:
     base = settings.OPENWEATHER["BASE_URL"]
     api_key = settings.OPENWEATHER["API_KEY"]
-    timeout = timeout or settings.OPENWEATHER.get("TIMEOUT", 5)
+    timeout_val = timeout or settings.OPENWEATHER.get("TIMEOUT", 5)
 
     q = build_query(city, district, "KR")
     url = f"{base}/geo/1.0/direct"
-    params = {"q": q, "limit": 1, "appid": api_key}
+
+    params: dict[str, ParamValue] = {"q": q, "limit": 1, "appid": api_key}
 
     try:
-        r = requests.get(url, params=params, timeout=timeout)
+        r = requests.get(
+            url, params=params, headers=DEFAULT_HEADERS, timeout=timeout_val
+        )
         if r.status_code >= 500:
             raise GeocodingError("provider_error")
         r.raise_for_status()
