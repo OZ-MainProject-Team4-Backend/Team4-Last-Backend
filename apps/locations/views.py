@@ -32,7 +32,9 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
 
         # 이미 기본 위치라면 DB 변경 필요 없음
         if favorite.is_default:
-            return Response({"message": "이미 기본 위치입니다."}, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "이미 기본 위치입니다."}, status=status.HTTP_200_OK
+            )
 
         FavoriteLocation.objects.filter(
             user=request.user,

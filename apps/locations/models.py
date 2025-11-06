@@ -25,7 +25,7 @@ class FavoriteLocation(SoftDeleteModel):
     )
     city = models.CharField(max_length=50)  # 시/도 (예: 서울시)
     district = models.CharField(max_length=50)  # 구 (예: 강남구)
-    order = models.PositiveIntegerField(default=0) # 즐겨찾기 순서
+    order = models.PositiveIntegerField(default=0)  # 즐겨찾기 순서
     created_at = models.DateTimeField(auto_now_add=True)  # 생성 시각
     updated_at = models.DateTimeField(auto_now=True)  # 수정 시각
 
