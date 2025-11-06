@@ -181,11 +181,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SOCIAL_PROVIDERS = {
     "kakao": {
         "name": "카카오",
-        "client_id": os.environ.get("KAKAO_API_KEY"),
+        "api_key": os.environ.get("KAKAO_API_KEY"),
+        "client_secret": os.environ.get("KAKAO_CLIENT_SECRET"),
         "auth_url": "https://kauth.kakao.com/oauth/authorize",
         "token_url": "https://kauth.kakao.com/oauth/token",
         "user_info_url": "https://kapi.kakao.com/v2/user/me",
-        "redirect_uri": "http://localhost:8000/api/social/kakao/callback",
+        "redirect_uri": "http://localhost:8000/api/auth/social/kakao/callback",
     },
     "naver": {
         "name": "네이버",
@@ -194,7 +195,7 @@ SOCIAL_PROVIDERS = {
         "auth_url": "https://nid.naver.com/oauth2.0/authorize",
         "token_url": "https://nid.naver.com/oauth2.0/token",
         "user_info_url": "https://openapi.naver.com/v1/nid/me",
-        "redirect_uri": "http://localhost:8000/api/social/naver/callback",
+        "redirect_uri": "http://localhost:8000/api/auth/social/naver/callback",
     },
     "google": {
         "name": "구글",
@@ -203,7 +204,7 @@ SOCIAL_PROVIDERS = {
         "auth_url": "https://accounts.google.com/o/oauth2/v2/auth",
         "token_url": "https://oauth2.googleapis.com/token",
         "user_info_url": "https://www.googleapis.com/oauth2/v2/userinfo",
-        "redirect_uri": "http://localhost:8000/api/social/google/callback",
+        "redirect_uri": "http://localhost:8000/api/auth/social/google/callback",
         "scope": "openid email profile",
     },
 }

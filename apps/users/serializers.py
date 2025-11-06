@@ -110,31 +110,42 @@ class SignupSerializer(serializers.ModelSerializer):
     def validate(self, data: Dict):
         pw = data.get("password")
         pwc = data.get("password_confirm")
+
+        # 비밀번호 일치 확인
         if pw != pwc:
             raise serializers.ValidationError(
                 {"password_confirm": "비밀번호가 일치하지 않습니다."}
             )
 
+        # 길이 확인
         if not pw or len(pw) < 6 or len(pw) > 20:
             raise serializers.ValidationError(
                 {"password": "비밀번호는 6자 이상 20자 이하로 입력해야 합니다."}
             )
 
+        # 공백 확인
         if " " in pw:
             raise serializers.ValidationError(
                 {"password": "비밀번호에 공백을 포함할 수 없습니다."}
             )
 
-        if not any(c.islower() for c in pw) or not any(c.isupper() for c in pw):
+        # 대문자, 소문자, 숫자 포함 확인
+        if (
+            not any(c.islower() for c in pw)
+            or not any(c.isupper() for c in pw)
+            or not any(c.isdigit() for c in pw)
+        ):
             raise serializers.ValidationError(
-                {"password": "비밀번호는 영어 대문자와 소문자를 조합해야 합니다."}
+                {"password": "비밀번호는 영어 대문자, 소문자, 숫자를 조합해야 합니다."}
             )
 
-        if not all(c.isalpha() for c in pw):
+        # 영어+숫자만 허용 확인 (특수문자 제외)
+        if not all(c.isalnum() for c in pw):
             raise serializers.ValidationError(
-                {"password": "비밀번호는 영어만 사용할 수 있습니다."}
+                {"password": "비밀번호는 영어와 숫자만 사용할 수 있습니다."}
             )
 
+        # 이메일 중복 확인
         email = data.get("email")
         if (
             email
@@ -144,6 +155,7 @@ class SignupSerializer(serializers.ModelSerializer):
         ):
             raise serializers.ValidationError({"email": "이미 사용중인 이메일입니다."})
 
+        # 닉네임 중복 확인
         nickname = data.get("nickname")
         if (
             nickname
