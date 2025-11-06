@@ -1,4 +1,3 @@
-from django.db import models
 from rest_framework import serializers
 
 from .models import FavoriteLocation
@@ -23,6 +22,7 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """사용자당 최대 3개의 즐겨찾기 제한"""
         user = self.context["request"].user
+
         count = FavoriteLocation.objects.filter(
             user=user, deleted_at__isnull=True
         ).count()
@@ -37,12 +37,17 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """새로 생성 시 order 값 자동 부여 (0, 1, 2 순서)"""
         user = self.context["request"].user
+        validated_data["user"] = user
 
-        max_order = (
-            FavoriteLocation.objects.filter(user=user, deleted_at__isnull=True)
-            .aggregate(models.Max("order"))
-            .get("order__max")
+        existing_orders = list(
+            FavoriteLocation.objects.filter(
+                user=user, deleted_at__isnull=True
+            ).values_list("order", flat=True)
         )
 
-        validated_data["order"] = (max_order or 0) + 1
+        for i in range(3):
+            if i not in existing_orders:
+                validated_data["order"] = i
+                break
+
         return super().create(validated_data)
