@@ -40,9 +40,10 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
-
 # 응답 헬퍼 함수
-def success_response(message: str, data=None, status_code=200, http_status=status.HTTP_200_OK):
+def success_response(
+    message: str, data=None, status_code=200, http_status=status.HTTP_200_OK
+):
     response = {
         "success": True,
         "statusCode": status_code,
@@ -53,7 +54,9 @@ def success_response(message: str, data=None, status_code=200, http_status=statu
     return Response(response, status=http_status)
 
 
-def error_response(code: str, message: str, http_status=status.HTTP_400_BAD_REQUEST, status_code=None):
+def error_response(
+    code: str, message: str, http_status=status.HTTP_400_BAD_REQUEST, status_code=None
+):
     if status_code is None:
         # HTTP 상태 코드에서 statusCode 추출
         status_code_map = {
@@ -123,7 +126,7 @@ class NicknameValidateView(APIView):
         nickname = serializer.validated_data["nickname"].strip()
 
         if User.objects.filter(
-                nickname__iexact=nickname, deleted_at__isnull=True
+            nickname__iexact=nickname, deleted_at__isnull=True
         ).exists():
             return error_response(
                 code="nickname_already_in_use",
@@ -146,7 +149,7 @@ class EmailSendView(APIView):
         email = serializer.validated_data["email"].strip().lower()
 
         if User.objects.filter(
-                email__iexact=email, email_verified=True, deleted_at__isnull=True
+            email__iexact=email, email_verified=True, deleted_at__isnull=True
         ).exists():
             return error_response(
                 code="email_already_verified",
@@ -244,10 +247,10 @@ class SignUpView(APIView):
 
         nickname = serializer.validated_data.get("nickname")
         if (
-                nickname
-                and User.objects.filter(
-            nickname__iexact=nickname, deleted_at__isnull=True
-        ).exists()
+            nickname
+            and User.objects.filter(
+                nickname__iexact=nickname, deleted_at__isnull=True
+            ).exists()
         ):
             return error_response(
                 code="nickname_duplicate",
@@ -270,7 +273,9 @@ class SignUpView(APIView):
             "gender": getattr(user, "gender", None),
             "age_group": getattr(user, "age_group", None),
             "is_verified": user.email_verified,
-            "created_at": user.created_at.isoformat() if hasattr(user, "created_at") else None,
+            "created_at": (
+                user.created_at.isoformat() if hasattr(user, "created_at") else None
+            ),
         }
 
         return success_response(
@@ -313,7 +318,9 @@ class LoginView(APIView):
             "email": user.email,
             "nickname": user.nickname,
             "is_verified": user.email_verified,
-            "created_at": user.created_at.isoformat() if hasattr(user, "created_at") else None,
+            "created_at": (
+                user.created_at.isoformat() if hasattr(user, "created_at") else None
+            ),
         }
 
         return success_response(
@@ -347,7 +354,9 @@ class MyPageView(APIView):
             "gender": getattr(u, "gender", None),
             "age_group": getattr(u, "age_group", None),
             "is_verified": u.email_verified,
-            "created_at": u.created_at.isoformat() if hasattr(u, "created_at") else None,
+            "created_at": (
+                u.created_at.isoformat() if hasattr(u, "created_at") else None
+            ),
         }
         return success_response(data=data, status_code=200)
 
@@ -425,7 +434,9 @@ class EmailChangeVerifyView(APIView):
             "id": user.id,
             "email": user.email,
             "nickname": user.nickname,
-            "updated_at": user.updated_at.isoformat() if hasattr(user, "updated_at") else None,
+            "updated_at": (
+                user.updated_at.isoformat() if hasattr(user, "updated_at") else None
+            ),
         }
 
         return success_response(
