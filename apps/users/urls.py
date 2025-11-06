@@ -17,6 +17,7 @@ from .views import (
     SocialLoginView,
     SocialUnlinkView,
     UserDeleteView,
+    SocialCallbackView,
 )
 
 app_name = 'users'
@@ -47,7 +48,7 @@ urlpatterns = [
     ),
     path(
         "social/<str:provider>/callback",
-        SocialLoginView.as_view(),
+        SocialCallbackView.as_view(),
         name="social-callback",
     ),
 ]
