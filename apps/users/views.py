@@ -1,5 +1,6 @@
 import logging
 import random
+import secrets
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -378,6 +379,33 @@ class UserDeleteView(APIView):
 class SocialLoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = SocialLoginSerializer
+
+    def get(self, request, provider):
+        # provider 유효성 검사
+        if provider not in settings.SOCIAL_PROVIDERS:
+            return Response({"error": "지원하지 않는 소셜 로그인"}, status=400)
+
+        config = settings.SOCIAL_PROVIDERS[provider]
+        # 기본 파라미터들 (provider 설정에 따라 이름과 required가 다름)
+        # 예시: kakao(카카오) -> authorize_url, client_id, redirect_uri, response_type=code
+        params = {
+            "client_id": config["client_id"],
+            "redirect_uri": config["redirect_uri"],
+            "response_type": "code",
+        }
+
+        # provider 별 추가 파라미터 (예: kakao state, scope 등)
+        # 상태 검증을 위해 state 생성해 세션에 넣어두기 (naver는 state 필수)
+        state = secrets.token_urlsafe(16)
+        request.session["oauth_state"] = state
+        params["state"] = state
+
+        # kakao 특성: scope 등 필요하면 config에 넣어두고 합치기
+        if config.get("scope"):
+            params["scope"] = config["scope"]
+
+        auth_url = f"{config['authorize_url']}?{urlencode(params)}"
+        return redirect(auth_url)
 
     @extend_schema(request=SocialLoginSerializer, responses={200: dict})
     def post(self, request, provider):
