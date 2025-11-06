@@ -22,13 +22,19 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    @action(detail=True, methods=["patch"], url_path="set-default/")
+    @action(detail=True, methods=["patch"], url_path="set-default")
     def set_default(self, request, pk=None):
         """
         PATCH /api/locations/favorites/{id}/set-default/
         해당 위치를 사용자의 기본 위치로 설정
         """
         favorite = self.get_object()
+
+        # 이미 기본 위치라면 DB 변경 필요 없음
+        if favorite.is_default:
+            return Response(
+                {"message": "이미 기본 위치입니다."}, status=status.HTTP_200_OK
+            )
 
         FavoriteLocation.objects.filter(
             user=request.user,
@@ -49,5 +55,7 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
         """
 
         instance = self.get_object()
+        was_default = instance.is_default
+
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
