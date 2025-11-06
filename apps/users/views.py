@@ -404,7 +404,7 @@ class SocialLoginView(APIView):
         if config.get("scope"):
             params["scope"] = config["scope"]
 
-        auth_url = f"{config['authorize_url']}?{urlencode(params)}"
+        auth_url = f"{config['auth_url']}?{urlencode(params)}"
         return redirect(auth_url)
 
     @extend_schema(request=SocialLoginSerializer, responses={200: dict})
