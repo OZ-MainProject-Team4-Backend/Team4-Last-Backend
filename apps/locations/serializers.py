@@ -40,8 +40,9 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
         validated_data["user"] = user
 
         existing_orders = list(
-            FavoriteLocation.objects.filter(user=user, deleted_at__isnull=True)
-            .values_list("order", flat=True)
+            FavoriteLocation.objects.filter(
+                user=user, deleted_at__isnull=True
+            ).values_list("order", flat=True)
         )
 
         for i in range(3):
