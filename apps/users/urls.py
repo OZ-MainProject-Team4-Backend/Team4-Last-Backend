@@ -43,6 +43,11 @@ urlpatterns = [
     path("social/<str:provider>/login", SocialLoginView.as_view(), name="social-login"),
     path("social/<str:provider>/link", SocialLinkView.as_view(), name="social-link"),
     path(
-        "social/<str:provider>/unlink", SocialUnlinkView.as_view(), name="social-unlink"),
-    path("social/<str:provider>/callback",SocialLoginView.as_view(), name="social-callback"),
+        "social/<str:provider>/unlink", SocialUnlinkView.as_view(), name="social-unlink"
+    ),
+    path(
+        "social/<str:provider>/callback",
+        SocialLoginView.as_view(),
+        name="social-callback",
+    ),
 ]
