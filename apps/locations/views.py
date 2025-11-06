@@ -1,8 +1,8 @@
 from django.db import transaction
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import action
 
 from .models import FavoriteLocation
 from .serializers import (
@@ -23,8 +23,7 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """사용자의 즐겨찾기 목록만 조회 (소프트삭제 제외)"""
         return FavoriteLocation.objects.filter(
-            user=self.request.user,
-            deleted_at__isnull=True
+            user=self.request.user, deleted_at__isnull=True
         ).order_by("order")
 
     @transaction.atomic
@@ -36,17 +35,17 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
         instance.delete()
 
         favorites = FavoriteLocation.objects.filter(
-            user=request.user,
-            deleted_at__isnull=True
+            user=request.user, deleted_at__isnull=True
         ).order_by("order")
 
-        for index, favorite in enumerate(favorites): # 중간에 구멍이 생겼을시 index(0,1,2) 기반으로 order 값 재할당
+        for index, favorite in enumerate(
+            favorites
+        ):  # 중간에 구멍이 생겼을시 index(0,1,2) 기반으로 order 값 재할당
             if favorite.order != index:
                 favorite.order = index
                 favorite.save(update_fields=["order"])
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-
 
     def partial_update(self, request, *args, **kwargs):
         """
