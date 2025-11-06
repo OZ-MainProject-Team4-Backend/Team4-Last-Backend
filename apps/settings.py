@@ -181,8 +181,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SOCIAL_PROVIDERS = {
     "kakao": {
         "name": "카카오",
-        "client_id": os.environ.get("KAKAO_CLIENT_ID"),
-        "client_secret": os.environ.get("KAKAO_CLIENT_SECRET"),  # 선택사항
+        "client_id": os.environ.get("KAKAO_API_KEY"),
         "auth_url": "https://kauth.kakao.com/oauth/authorize",
         "token_url": "https://kauth.kakao.com/oauth/token",
         "user_info_url": "https://kapi.kakao.com/v2/user/me",
