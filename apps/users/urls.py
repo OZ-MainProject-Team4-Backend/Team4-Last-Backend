@@ -13,11 +13,11 @@ from .views import (
     PasswordChangeView,
     ProfileUpdateView,
     SignUpView,
+    SocialCallbackView,
     SocialLinkView,
     SocialLoginView,
     SocialUnlinkView,
     UserDeleteView,
-    SocialCallbackView,
 )
 
 app_name = 'users'
