@@ -1,5 +1,6 @@
-from rest_framework import serializers
 from django.db import models
+from rest_framework import serializers
+
 from .models import FavoriteLocation
 
 
@@ -22,11 +23,15 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """사용자당 최대 3개의 즐겨찾기 제한"""
         user = self.context["request"].user
-        count = FavoriteLocation.objects.filter(user=user, deleted_at__isnull=True).count()
+        count = FavoriteLocation.objects.filter(
+            user=user, deleted_at__isnull=True
+        ).count()
 
         # create 시에만 제한 확인
         if self.instance is None and count >= 3:
-            raise serializers.ValidationError("즐겨찾기는 최대 3개까지 등록할 수 있습니다.")
+            raise serializers.ValidationError(
+                "즐겨찾기는 최대 3개까지 등록할 수 있습니다."
+            )
         return attrs
 
     def create(self, validated_data):
