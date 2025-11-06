@@ -1,5 +1,6 @@
+from django.db import IntegrityError, transaction
 from rest_framework import serializers
-from django.db import transaction, IntegrityError
+
 from .models import FavoriteLocation
 
 
@@ -32,10 +33,12 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
 
         # 최대 3개 제한
         if qs.count() >= 3:
-            raise serializers.ValidationError({
+            raise serializers.ValidationError(
+                {
                     "error": "limit_exceeded",
-                    "message": "즐겨찾기는 최대 3개까지 등록 가능합니다."
-                })
+                    "message": "즐겨찾기는 최대 3개까지 등록 가능합니다.",
+                }
+            )
 
         # 비어있는 오더에 자동 배정
         existing_orders = set(qs.values_list("order", flat=True))
@@ -48,7 +51,9 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
         try:
             return super().create(validated_data)
         except IntegrityError:
-            raise serializers.ValidationError({
-                "error": "already_exists",
-                "message": "이미 즐겨찾기에 등록된 지역입니다."
-            })
+            raise serializers.ValidationError(
+                {
+                    "error": "already_exists",
+                    "message": "이미 즐겨찾기에 등록된 지역입니다.",
+                }
+            )
