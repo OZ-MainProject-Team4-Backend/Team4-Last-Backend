@@ -1,61 +1,71 @@
+from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import FavoriteLocation
-from .serializers import FavoriteLocationSerializer
+from .serializers import (
+    FavoriteLocationSerializer,
+)
 
 
 class FavoriteLocationViewSet(viewsets.ModelViewSet):
     """
-    즐겨찾기 위치 CRUD Viewset
-    기본적으로 SoftDelete된 데이터는 제외하여 조회됨 (SoftDeleteModel.objects 사용)
+    즐겨찾기 지역 CRUD Viewset
+    기본 목록 생성, 조회, 수정, 삭제 제공
+    SoftDeleteModel 기반 - deleted_at IS NULL 데이터만 조회
     """
 
     permission_classes = [IsAuthenticated]
     serializer_class = FavoriteLocationSerializer
 
     def get_queryset(self):
-        return FavoriteLocation.objects.filter(user=self.request.user)
+        """사용자의 즐겨찾기 목록만 조회 (소프트삭제 제외)"""
+        return FavoriteLocation.objects.filter(
+            user=self.request.user, deleted_at__isnull=True
+        ).order_by("order")
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    @action(detail=True, methods=["patch"], url_path="set-default")
-    def set_default(self, request, pk=None):
-        """
-        PATCH /api/locations/favorites/{id}/set-default/
-        해당 위치를 사용자의 기본 위치로 설정
-        """
-        favorite = self.get_object()
-
-        # 이미 기본 위치라면 DB 변경 필요 없음
-        if favorite.is_default:
-            return Response(
-                {"message": "이미 기본 위치입니다."}, status=status.HTTP_200_OK
-            )
-
-        FavoriteLocation.objects.filter(
-            user=request.user,
-            is_default=True,
-            deleted_at__isnull=True,
-        ).update(is_default=False)
-
-        favorite.is_default = True
-        favorite.save(update_fields=["is_default"])
-
-        return Response(
-            {"message": "기본 위치가 변경되었습니다."}, status=status.HTTP_200_OK
-        )
-
+    @transaction.atomic
     def destroy(self, request, *args, **kwargs):
         """
-        Delete - soft delete(deleted_at 값만 업데이트)
+        DELETE /api/locations/favorites/{id}
         """
-
         instance = self.get_object()
-        was_default = instance.is_default
-
         instance.delete()
+
+        favorites = FavoriteLocation.objects.filter(
+            user=request.user, deleted_at__isnull=True
+        ).order_by("order")
+
+        for index, favorite in enumerate(
+            favorites
+        ):  # 중간에 구멍이 생겼을시 index(0,1,2) 기반으로 order 값 재할당
+            if favorite.order != index:
+                favorite.order = index
+                favorite.save(update_fields=["order"])
+
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def partial_update(self, request, *args, **kwargs):
+        """
+        PATCH /api/locations/favorites/{id}
+        별칭 변경
+        """
+        instance = self.get_object()
+
+        if "order" in request.data:
+            return Response(
+                {"detail": "order 변경은 /reorder 엔드포인트를 사용해야 합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return super().partial_update(request, *args, **kwargs)
+
+    @action(detail=False, methods=["patch"], url_path="reorder")
+    def reorder(self, request):
+        """
+        PATCH /api/locations/favorites/reorder
+        이 로직은 다음 pr에서 구현 예정
+        """
+        pass
