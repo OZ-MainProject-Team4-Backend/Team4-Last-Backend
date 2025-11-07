@@ -36,11 +36,6 @@ class DiaryCreateSerializer(serializers.ModelSerializer):
         model = Diary
         fields = ["date", "title", "satisfaction", "notes", "image_url", "weather_data"]
 
-    def create(self, validated_data):
-        user = self.context["request"].user
-        return Diary.objects.create(user=user, **validated_data)
-
-
 class DiaryUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Diary
