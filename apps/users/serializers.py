@@ -29,12 +29,6 @@ class EmailVerifySerializer(serializers.Serializer):
     code = serializers.CharField(max_length=64)
 
 
-phone_validator = RegexValidator(
-    regex=r'^[0-9+\-]{9,20}$',
-    message="전화번호 형식이 올바르지 않습니다. (숫자, +, - 허용, 9~20자리)",
-)
-
-
 def map_age_to_group(age_value: Optional[str]) -> Optional[str]:
     if not age_value:
         return None
@@ -49,7 +43,7 @@ def map_age_to_group(age_value: Optional[str]) -> Optional[str]:
         return "40"
     if v in ("50", "50대", "fifty", "50s"):
         return "50"
-    if v in ("60", "60대 이상", "60+", "60s"):
+    if v in ("60", "60대 이상", "60+", "60s", "other"):
         return "60+"
     try:
         n = int(v)
@@ -84,9 +78,6 @@ def map_gender(gender_value: Optional[str]) -> Optional[str]:
 class SignupSerializer(serializers.ModelSerializer):
     age = serializers.CharField(write_only=True, required=False, allow_blank=True)
     gender = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    phone = serializers.CharField(
-        required=False, allow_blank=True, validators=[phone_validator]
-    )
     password_confirm = serializers.CharField(write_only=True)
     nickname = serializers.CharField(required=False, allow_blank=True, max_length=20)
 
@@ -100,7 +91,6 @@ class SignupSerializer(serializers.ModelSerializer):
             "name",
             "age",
             "gender",
-            "phone",
         ]
         extra_kwargs = {
             "password": {"write_only": True},
@@ -131,9 +121,9 @@ class SignupSerializer(serializers.ModelSerializer):
 
         # 대문자, 소문자, 숫자 포함 확인
         if (
-            not any(c.islower() for c in pw)
-            or not any(c.isupper() for c in pw)
-            or not any(c.isdigit() for c in pw)
+                not any(c.islower() for c in pw)
+                or not any(c.isupper() for c in pw)
+                or not any(c.isdigit() for c in pw)
         ):
             raise serializers.ValidationError(
                 {"password": "비밀번호는 영어 대문자, 소문자, 숫자를 조합해야 합니다."}
@@ -148,20 +138,20 @@ class SignupSerializer(serializers.ModelSerializer):
         # 이메일 중복 확인
         email = data.get("email")
         if (
-            email
-            and User.objects.filter(
-                email__iexact=email, deleted_at__isnull=True
-            ).exists()
+                email
+                and User.objects.filter(
+            email__iexact=email, deleted_at__isnull=True
+        ).exists()
         ):
             raise serializers.ValidationError({"email": "이미 사용중인 이메일입니다."})
 
         # 닉네임 중복 확인
         nickname = data.get("nickname")
         if (
-            nickname
-            and User.objects.filter(
-                nickname__iexact=nickname, deleted_at__isnull=True
-            ).exists()
+                nickname
+                and User.objects.filter(
+            nickname__iexact=nickname, deleted_at__isnull=True
+        ).exists()
         ):
             raise serializers.ValidationError(
                 {"nickname": "이미 사용중인 닉네임입니다."}
@@ -180,7 +170,6 @@ class SignupSerializer(serializers.ModelSerializer):
         extra = {
             "nickname": validated_data.get("nickname"),
             "name": validated_data.get("name"),
-            "phone": validated_data.get("phone"),
         }
         if age_group:
             extra["age_group"] = age_group
@@ -204,7 +193,6 @@ class SignupSerializer(serializers.ModelSerializer):
                     email=email,
                     nickname=extra.get("nickname"),
                     name=extra.get("name"),
-                    phone=extra.get("phone"),
                     age_group=extra.get("age_group"),
                     gender=extra.get("gender"),
                 )
@@ -236,6 +224,30 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "email", "nickname", "gender", "age_group"]
         read_only_fields = ["id", "email"]
+
+
+class FavoriteRegionsSerializer(serializers.Serializer):
+    """즐겨찾는 지역 수정 시리얼라이저"""
+    favorite_regions = serializers.ListField(
+        child=serializers.CharField(max_length=50),
+        required=True,
+        max_length=3,
+        help_text="사용자가 등록한 즐겨찾는 지역 (최대 3개)"
+    )
+
+    def validate_favorite_regions(self, value):
+        if len(value) > 3:
+            raise serializers.ValidationError("지역은 최대 3개까지만 등록할 수 있습니다.")
+
+        # 빈 문자열 체크
+        if any(not region.strip() for region in value):
+            raise serializers.ValidationError("유효하지 않은 지역이 있습니다.")
+
+        # 중복 체크
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError("중복된 지역이 있습니다.")
+
+        return value
 
 
 class PasswordChangeSerializer(serializers.Serializer):

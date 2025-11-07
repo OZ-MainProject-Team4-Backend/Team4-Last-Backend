@@ -38,12 +38,12 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     AGE_GROUP_CHOICES = (
-        ("10", "10대"),
-        ("20", "20대"),
-        ("30", "30대"),
-        ("40", "40대"),
-        ("50", "50대"),
-        ("60+", "60대 이상"),
+        ("10", "ten"),
+        ("20", "twenty"),
+        ("30", "thirty"),
+        ("40", "fourty"),
+        ("50", "fifth"),
+        ("60+", "Other"),
     )
     GENDER_CHOICES = (
         ("Woman", "여성"),
