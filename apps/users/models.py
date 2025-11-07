@@ -51,7 +51,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         ("0", "기타"),
     )
 
-
     id = models.AutoField(primary_key=True)
     email = models.EmailField(max_length=150, unique=True, null=False, db_index=True)
     password = models.CharField(max_length=255)
@@ -96,7 +95,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         indexes = [
             models.Index(fields=["email"]),
             models.Index(fields=["nickname"]),
-
         ]
 
     def __str__(self):
