@@ -11,7 +11,6 @@ from .serializers import (
     DiaryUpdateSerializer,
 )
 
-
 class DiaryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Diary.objects.filter(deleted_at__isnull=True)
@@ -28,7 +27,6 @@ class DiaryViewSet(viewsets.ModelViewSet):
             return DiaryUpdateSerializer
         return DiaryDetailSerializer
 
-    #  본인 일기만
     def get_queryset(self):
         user = self.request.user
         queryset = Diary.objects.filter(user=user, deleted_at__isnull=True)
@@ -48,8 +46,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
     #  soft delete
     def perform_destroy(self, instance):
-        instance.is_deleted = True
-        instance.save(update_fields=["is_deleted"])
+        instance.delete()
 
     #  일기생성
     def create(self, request, *args, **kwargs):
@@ -63,11 +60,6 @@ class DiaryViewSet(viewsets.ModelViewSet):
             )
         except ValidationError:
             return Response({"error": "작성 실패"}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            # 로그로 기록하거나 디버깅 시 확인 가능
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
@@ -77,17 +69,13 @@ class DiaryViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
             return Response({"message": "일기 수정 완료"})
-        except ValidationError as e:
-            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except ValidationError:
+            return Response({"error": "수정 실패"}, status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response(
-            {"message": "일기가 삭제되었습니다."},
-            status=status.HTTP_200_OK,
-        )
+        try:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ValidationError:
+            return Response({"error": "삭제 실패"}, status=status.HTTP_400_BAD_REQUEST)
