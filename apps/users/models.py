@@ -38,12 +38,12 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     AGE_GROUP_CHOICES = (
-        ("10", "10대"),
-        ("20", "20대"),
-        ("30", "30대"),
-        ("40", "40대"),
-        ("50", "50대"),
-        ("60+", "60대 이상"),
+        ("10", "ten"),
+        ("20", "twenty"),
+        ("30", "thirty"),
+        ("40", "fourty"),
+        ("50", "fifth"),
+        ("60+", "Other"),
     )
     GENDER_CHOICES = (
         ("Woman", "여성"),
@@ -51,27 +51,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         ("0", "기타"),
     )
 
-    # phone validator: 숫자, +, - 허용, 9~20자
-    phone_validator = RegexValidator(
-        regex=r'^[0-9+\-]{9,20}$',
-        message="전화번호 형식이 올바르지 않습니다. (숫자, +, - 허용, 9~20자리)",
-    )
-
     id = models.AutoField(primary_key=True)
     email = models.EmailField(max_length=150, unique=True, null=False, db_index=True)
     password = models.CharField(max_length=255)
     name = models.CharField(max_length=100, blank=True, null=True)
     nickname = models.CharField(max_length=50, blank=True, null=True, db_index=True)
-
-    # 추가된 필드: phone
-    phone = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True,
-        db_index=True,
-        validators=[phone_validator],
-        help_text="국가번호 포함 가능. 숫자, +, - 허용",
-    )
 
     gender = models.CharField(
         max_length=10, choices=GENDER_CHOICES, blank=True, null=True
@@ -82,6 +66,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         null=True,
         verbose_name="연령대",
+    )
+
+    favorite_regions = models.JSONField(
+        default=list,
+        blank=True,
+        null=True,
+        help_text="사용자가 등록한 즐겨찾는 지역 (최대 3가지, 예: ['서울','부산','대구'])",
     )
 
     email_verified = models.BooleanField(default=False)
@@ -104,7 +95,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         indexes = [
             models.Index(fields=["email"]),
             models.Index(fields=["nickname"]),
-            models.Index(fields=["phone"]),
         ]
 
     def __str__(self):
