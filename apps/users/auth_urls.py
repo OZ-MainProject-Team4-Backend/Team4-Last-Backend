@@ -26,12 +26,17 @@ urlpatterns = [
     path('signup', SignUpView.as_view(), name='signup'),
     path('login', LoginView.as_view(), name='login'),
     path('logout', LogoutView.as_view(), name='logout'),
-
     # 사용자 관련
     path('me', MyPageView.as_view(), name='me'),
     path('profile', ProfileUpdateView.as_view(), name='profile-update'),
-    path('profile/regions', FavoriteRegionsUpdateView.as_view(), name='favorite-regions'),
-    path('email/verify-change', EmailChangeVerifyView.as_view(), name='email-change-verify'),
+    path(
+        'profile/regions', FavoriteRegionsUpdateView.as_view(), name='favorite-regions'
+    ),
+    path(
+        'email/verify-change',
+        EmailChangeVerifyView.as_view(),
+        name='email-change-verify',
+    ),
     path('password', PasswordChangeView.as_view(), name='password-change'),
     path('user', UserDeleteView.as_view(), name='user-delete'),
 ]

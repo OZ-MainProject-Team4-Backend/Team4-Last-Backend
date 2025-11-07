@@ -126,6 +126,7 @@ def gen_code(n=6) -> str:
 # 인증 Views
 # ============================================
 
+
 class NicknameValidateView(APIView):
     permission_classes = [AllowAny]
     serializer_class = NicknameValidateSerializer
@@ -355,6 +356,7 @@ class LogoutView(APIView):
 # 사용자 관리 Views
 # ============================================
 
+
 class MyPageView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -417,6 +419,7 @@ class ProfileUpdateView(APIView):
 
 class FavoriteRegionsUpdateView(APIView):
     """즐겨찾는 지역 수정"""
+
     permission_classes = [IsAuthenticated]
     serializer_class = FavoriteRegionsSerializer
 
@@ -532,6 +535,7 @@ class UserDeleteView(APIView):
 # ============================================
 # 소셜 로그인 Views (기존 코드와 동일)
 # ============================================
+
 
 class SocialLoginView(APIView):
     permission_classes = [AllowAny]
