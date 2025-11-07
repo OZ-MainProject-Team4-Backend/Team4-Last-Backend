@@ -76,14 +76,18 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
 
         if not isinstance(data, list):
             return Response(
-                {"error": "invalid_format", "message": "리스트 형태로 전달해야 합니다."},
+                {
+                    "error": "invalid_format",
+                    "message": "리스트 형태로 전달해야 합니다.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # 1. 사용자 소유의 즐겨찾기 id 목록 받기
         current_ids = set(
-            FavoriteLocation.objects.filter(user=request.user, deleted_at__isnull=True)
-            .values_list("id", flat=True)
+            FavoriteLocation.objects.filter(
+                user=request.user, deleted_at__isnull=True
+            ).values_list("id", flat=True)
         )
         # 2. 사용자 ID 검증
         requested_ids = {item.get("id") for item in request.data}
