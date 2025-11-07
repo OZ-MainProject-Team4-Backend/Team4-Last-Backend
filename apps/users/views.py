@@ -18,6 +18,7 @@ from .models import SocialAccount
 from .serializers import (
     EmailSendSerializer,
     EmailVerifySerializer,
+    FavoriteRegionsSerializer,
     LoginSerializer,
     NicknameValidateSerializer,
     PasswordChangeSerializer,
@@ -40,10 +41,13 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+# ============================================
 # 응답 헬퍼 함수
+# ============================================
 def success_response(
     message: str, data=None, status_code=200, http_status=status.HTTP_200_OK
 ):
+    """통일된 성공 응답"""
     response = {
         "success": True,
         "statusCode": status_code,
@@ -57,8 +61,8 @@ def success_response(
 def error_response(
     code: str, message: str, http_status=status.HTTP_400_BAD_REQUEST, status_code=None
 ):
+    """통일된 에러 응답"""
     if status_code is None:
-        # HTTP 상태 코드에서 statusCode 추출
         status_code_map = {
             status.HTTP_400_BAD_REQUEST: 400,
             status.HTTP_401_UNAUTHORIZED: 401,
@@ -82,7 +86,9 @@ def error_response(
     )
 
 
+# ============================================
 # 캐시 키 함수
+# ============================================
 def key_verif(email: str) -> str:
     return f"email_verif:{email.lower()}"
 
@@ -103,7 +109,9 @@ def key_nickname_valid(nickname: str) -> str:
     return f"nickname_valid:{nickname.lower()}"
 
 
+# ============================================
 # 상수
+# ============================================
 EMAIL_VERIF_CODE_TTL = 300
 EMAIL_PREVER_TTL = 1800
 EMAIL_VERIF_RESEND_TTL = 60
@@ -114,7 +122,11 @@ def gen_code(n=6) -> str:
     return "".join(str(random.randint(0, 9)) for _ in range(n))
 
 
-# 인증
+# ============================================
+# 인증 Views
+# ============================================
+
+
 class NicknameValidateView(APIView):
     permission_classes = [AllowAny]
     serializer_class = NicknameValidateSerializer
@@ -340,7 +352,11 @@ class LogoutView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# ============================================
 # 사용자 관리 Views
+# ============================================
+
+
 class MyPageView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -354,6 +370,7 @@ class MyPageView(APIView):
             "gender": getattr(u, "gender", None),
             "age_group": getattr(u, "age_group", None),
             "is_verified": u.email_verified,
+            "favorite_regions": getattr(u, "favorite_regions", None) or [],
             "created_at": (
                 u.created_at.isoformat() if hasattr(u, "created_at") else None
             ),
@@ -398,6 +415,31 @@ class ProfileUpdateView(APIView):
         user.updated_at = timezone.now()
         user.save(update_fields=["updated_at"])
         return success_response(message="프로필 수정 완료", status_code=200)
+
+
+class FavoriteRegionsUpdateView(APIView):
+    """즐겨찾는 지역 수정"""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = FavoriteRegionsSerializer
+
+    @extend_schema(request=FavoriteRegionsSerializer, responses={200: dict})
+    def patch(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        favorite_regions = serializer.validated_data["favorite_regions"]
+
+        user.favorite_regions = favorite_regions
+        user.updated_at = timezone.now()
+        user.save(update_fields=["favorite_regions", "updated_at"])
+
+        return success_response(
+            message="즐겨찾는 지역 수정 완료",
+            data={"favorite_regions": favorite_regions},
+            status_code=200,
+        )
 
 
 class EmailChangeVerifyView(APIView):
@@ -490,7 +532,11 @@ class UserDeleteView(APIView):
         )
 
 
-# 소셜 로그인
+# ============================================
+# 소셜 로그인 Views (기존 코드와 동일)
+# ============================================
+
+
 class SocialLoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = SocialLoginSerializer
