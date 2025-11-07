@@ -11,6 +11,7 @@ from .serializers import (
     DiaryUpdateSerializer,
 )
 
+
 class DiaryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Diary.objects.filter(deleted_at__isnull=True)
