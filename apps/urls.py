@@ -38,7 +38,8 @@ urlpatterns = [
         name="redoc",
     ),
     path("admin/", admin.site.urls),
-    path("api/auth/", include("apps.users.urls", namespace="users")),
+    path("api/auth/", include("apps.users.auth_urls")),
+    path("api/social/", include("apps.users.social_urls")),
     path("api/locations/", include("apps.locations.urls")),
     # weather
     path("api/weather/", include("apps.weather.urls")),

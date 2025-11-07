@@ -181,7 +181,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SOCIAL_PROVIDERS = {
     "kakao": {
         "name": "카카오",
-        "api_key": os.environ.get("KAKAO_API_KEY"),
+        "client_id": os.environ.get("KAKAO_CLIENT_ID"),  # 기존 api_key 대신 client_id로
         "client_secret": os.environ.get("KAKAO_CLIENT_SECRET"),
         "auth_url": "https://kauth.kakao.com/oauth/authorize",
         "token_url": "https://kauth.kakao.com/oauth/token",
@@ -208,6 +208,7 @@ SOCIAL_PROVIDERS = {
         "scope": "openid email profile",
     },
 }
+
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
