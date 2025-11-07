@@ -102,7 +102,7 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
             )
 
         # 3. order 중복/누락 검증
-        requested_orders = {item["order"] for item in request.data}
+        requested_orders = {item.get("order") for item in request.data}
         expected_orders = set(range(len(current_ids)))
 
         if requested_orders != expected_orders:
@@ -116,7 +116,7 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
 
         # 4. 업데이트
         for item in request.data:
-            FavoriteLocation.objects.filter(id=item["id"], user=request.user).update(
-                order=item["order"]
-            )
+            FavoriteLocation.objects.filter(
+                id=item.get("id"), user=request.user
+            ).update(order=item.get("order"))
         return Response({"message": "즐겨찾기 순서가 변경되었습니다."}, status=200)
