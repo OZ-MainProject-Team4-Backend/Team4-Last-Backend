@@ -49,7 +49,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
     #  soft delete
     def perform_destroy(self, instance):
         instance.is_deleted = True
-        instance.save(update_fields=["is_deleted"])
+        instance.save(update_fields=["deleted_at"])
 
     #  일기생성
     def create(self, request, *args, **kwargs):
