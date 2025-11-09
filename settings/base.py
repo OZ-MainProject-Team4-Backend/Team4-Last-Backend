@@ -21,7 +21,6 @@ from dotenv import load_dotenv
 ENV_FILE = os.environ.get("ENV_FILE", "env/.env")
 load_dotenv(dotenv_path=ENV_FILE)
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
-print("openweather key loaded :", bool(OPENWEATHER_API_KEY))
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -34,12 +33,11 @@ if os.path.exists(ENV_PATH):
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-8fl@b99nujn6sb9e#+li*#y&7&4kjni31(vz=qrw2#g#$pu)ql'
+SECRET_KEY = env("DJANGO_SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
-
-ALLOWED_HOSTS = ["*"]
+# DEBUG, ALLOWED_HOSTS are defined in development.py or production.py
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -68,17 +66,15 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
 ]
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8080', 'http://team4.p-e.kr/']
+# These are defined in development.py or production.py
+CSRF_TRUSTED_ORIGINS = []
+CORS_ALLOWED_ORIGINS = []
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
 
-ROOT_URLCONF = 'apps.urls'
+ROOT_URLCONF = 'settings.urls'
 
 TEMPLATES = [
     {
@@ -95,23 +91,12 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'apps.wsgi.application'
+WSGI_APPLICATION = 'settings.wsgi.application'
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB"),
-        "USER": os.environ.get("POSTGRES_USER"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
-        "HOST": os.environ.get("POSTGRES_HOST"),
-        "PORT": os.environ.get("POSTGRES_PORT", 5432),
-    }
-}
+DATABASES = {"default": env.db("DATABASE_URL")}
 
 
 # Password validation
@@ -133,15 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis:6379/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        },
-    }
-}
+CACHES = {"default": env.cache("CACHE_URL")}
 
 
 EMAIL_VERIF_CODE_TTL = 300  # 5분
@@ -171,6 +148,7 @@ AUTH_USER_MODEL = "users.User"
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -181,12 +159,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SOCIAL_PROVIDERS = {
     "kakao": {
         "name": "카카오",
-        "client_id": os.environ.get("KAKAO_CLIENT_ID"),  # 기존 api_key 대신 client_id로
+        "client_id": os.environ.get("KAKAO_CLIENT_ID"),
         "client_secret": os.environ.get("KAKAO_CLIENT_SECRET"),
         "auth_url": "https://kauth.kakao.com/oauth/authorize",
         "token_url": "https://kauth.kakao.com/oauth/token",
         "user_info_url": "https://kapi.kakao.com/v2/user/me",
-        "redirect_uri": "http://localhost:8000/api/auth/social/kakao/callback",
     },
     "naver": {
         "name": "네이버",
@@ -195,7 +172,6 @@ SOCIAL_PROVIDERS = {
         "auth_url": "https://nid.naver.com/oauth2.0/authorize",
         "token_url": "https://nid.naver.com/oauth2.0/token",
         "user_info_url": "https://openapi.naver.com/v1/nid/me",
-        "redirect_uri": "http://localhost:8000/api/auth/social/naver/callback",
     },
     "google": {
         "name": "구글",
@@ -204,16 +180,20 @@ SOCIAL_PROVIDERS = {
         "auth_url": "https://accounts.google.com/o/oauth2/v2/auth",
         "token_url": "https://oauth2.googleapis.com/token",
         "user_info_url": "https://www.googleapis.com/oauth2/v2/userinfo",
-        "redirect_uri": "http://localhost:8000/api/auth/social/google/callback",
         "scope": "openid email profile",
     },
 }
 
 
+# 세션을 Redis에 저장하도록 설정
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
 }
@@ -236,8 +216,8 @@ EMAIL_HOST = "smtp.naver.com"
 EMAIL_PORT = 465
 EMAIL_USE_SSL = True
 EMAIL_USE_TLS = False
-EMAIL_HOST_USER = "qkralstn8070@naver.com"
-EMAIL_HOST_PASSWORD = "N5TDU5WD5T7B"
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default=None)
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default=None)
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
