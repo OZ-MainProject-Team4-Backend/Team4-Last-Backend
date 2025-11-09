@@ -1,7 +1,9 @@
+version: '3.9'
+
 services:
   last-AWS-db:
     image: postgres:15-alpine
-    container_name: last-AWS
+    container_name: last-AWS-db
     restart: always
     env_file:
       - ./env/.env
@@ -14,7 +16,6 @@ services:
     build: .
     container_name: last-AWS-web
     restart: always
-
     env_file:
       - ./env/.env
     ports:
@@ -24,6 +25,7 @@ services:
       - redis
     volumes:
       - .:/last-AWS
+    command: gunicorn settings.wsgi:application --bind 0.0.0.0:8000
 
   redis:
     image: redis:7

@@ -9,7 +9,7 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/root/.local/bin:/root/.cargo/bin:${PATH}"
-ENV DJANGO_SETTINGS_MODULE=apps.settings
+ENV DJANGO_SETTINGS_MODULE=settings.production
 
 # ----------------------------
 # 3. 필수 패키지 설치
@@ -42,6 +42,7 @@ RUN uv pip install --system --no-cache-dir -r requirements.txt
 # ----------------------------
 COPY ./manage.py ./
 COPY ./apps ./apps
+COPY ./settings ./settings
 
 # ----------------------------
 # 8. 스크립트 복사 및 권한 설정
