@@ -38,6 +38,11 @@ class DiaryCreateSerializer(serializers.ModelSerializer):
         model = Diary
         fields = ["date", "title", "satisfaction", "notes", "image_url", "lat", "lon"]
 
+    def create(self, validated_data):
+        validated_data.pop("lat", None)
+        validated_data.pop("lon", None)
+        return super().create(validated_data)
+        # lat/lon은 DB 필드 아님 → 제거
 
 class DiaryUpdateSerializer(serializers.ModelSerializer):
     class Meta:
