@@ -15,16 +15,10 @@ class Diary(SoftDeleteModel):
     ]
 
     id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField(verbose_name="작성 날짜")
     weather_data = models.ForeignKey(
-        WeatherData,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
+        WeatherData, on_delete=models.SET_NULL, null=True, blank=True
     )
     emotion = models.IntegerField(
         choices=EMOTION_CHOICES,
@@ -34,9 +28,11 @@ class Diary(SoftDeleteModel):
     title = models.CharField(max_length=255)
     notes = models.TextField(blank=True)
     image = models.ImageField(
-        upload_to='diary_images/%Y/%m/%d/', # 파일이 저장될 경로 (날짜별로 분리)
-        blank=True, null=True,
-        verbose_name="첨부 이미지 파일")
+        upload_to='diary_images/%Y/%m/%d/',  # 파일이 저장될 경로 (날짜별로 분리)
+        blank=True,
+        null=True,
+        verbose_name="첨부 이미지 파일",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

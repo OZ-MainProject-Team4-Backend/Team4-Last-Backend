@@ -1,8 +1,14 @@
+from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db import transaction
+
+from apps.weather import repository as weather_repo
+from apps.weather.models import WeatherLocation
+from apps.weather.services import openweather as ow
+
 from .models import Diary
 from .serializers import (
     DiaryCreateSerializer,
@@ -10,10 +16,6 @@ from .serializers import (
     DiaryListSerializer,
     DiaryUpdateSerializer,
 )
-from apps.weather.models import WeatherLocation
-from apps.weather import repository as weather_repo
-from apps.weather.services import openweather as ow
-from rest_framework.parsers import MultiPartParser, FormParser
 
 
 class DiaryViewSet(viewsets.ModelViewSet):
@@ -46,7 +48,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-    @transaction.atomic # 날씨 저장 중 오류 발생 시 일기까지 저장되지 않도록 롤백
+    @transaction.atomic  # 날씨 저장 중 오류 발생 시 일기까지 저장되지 않도록 롤백
     def perform_create(self, serializer):
         user = self.request.user
         lat = serializer.validated_data.get("lat")
@@ -60,7 +62,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
         except ow.ProviderError as e:
             raise ValidationError({"detail": str(e) or "weather_provider_error"})
         except Exception:
-            current_weather = None # 날씨 조회 실패시, 일기는 저장
+            current_weather = None  # 날씨 조회 실패시, 일기는 저장
 
         #  2. WeatherLocation 생성 or 갱신
         city = (current_weather.get("raw") or {}).get("name") or ""
