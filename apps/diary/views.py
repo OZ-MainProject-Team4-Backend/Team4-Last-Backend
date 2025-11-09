@@ -1,7 +1,13 @@
+from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from apps.weather import repository as weather_repo
+from apps.weather.models import WeatherLocation
+from apps.weather.services import openweather as ow
 
 from .models import Diary
 from .serializers import (
@@ -14,6 +20,7 @@ from .serializers import (
 
 class DiaryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]  #  multipart/form-data 지원
     queryset = Diary.objects.filter(deleted_at__isnull=True)
 
     #  액션별 serializer 분기
@@ -41,9 +48,39 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-    #  생성 시 user 자동 세팅
+    @transaction.atomic  # 날씨 저장 중 오류 발생 시 일기까지 저장되지 않도록 롤백
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        user = self.request.user
+        lat = serializer.validated_data.get("lat")
+        lon = serializer.validated_data.get("lon")
+
+        #  1. 날씨 데이터 조회
+        try:
+            current_weather = ow.get_current(lat=lat, lon=lon)
+        except ow.ProviderTimeout:
+            raise ValidationError({"detail": "weather_provider_timeout"})
+        except ow.ProviderError as e:
+            raise ValidationError({"detail": str(e) or "weather_provider_error"})
+        except Exception:
+            current_weather = None  # 날씨 조회 실패시, 일기는 저장
+
+        #  2. WeatherLocation 생성 or 갱신
+        city = (current_weather.get("raw") or {}).get("name") or ""
+        location, _ = WeatherLocation.objects.get_or_create(
+            lat=lat,
+            lon=lon,
+            defaults={"city": city, "district": "", "dp_name": city or f"{lat},{lon}"},
+        )
+
+        #  3. WeatherData 저장 (repository 사용)
+        weather_data = None
+        if current_weather:
+            weather_data = weather_repo.save_current(
+                location=location, current=current_weather
+            )
+
+        #  4. Diary 저장 (날씨 자동 연결)
+        serializer.save(user=user, weather_data=weather_data)
 
     #  soft delete
     def perform_destroy(self, instance):
@@ -52,31 +89,22 @@ class DiaryViewSet(viewsets.ModelViewSet):
     #  일기생성
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        try:
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            return Response(
-                {"diary_id": serializer.instance.id, "message": "일기 작성 완료"},
-                status=status.HTTP_201_CREATED,
-            )
-        except ValidationError:
-            return Response({"error": "작성 실패"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(
+            {"diary_id": serializer.instance.id, "message": "일기 작성 완료"},
+            status=status.HTTP_201_CREATED,
+        )
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        try:
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            return Response({"message": "일기 수정 완료"})
-        except ValidationError:
-            return Response({"error": "수정 실패"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response({"message": "일기 수정 완료"})
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        try:
-            self.perform_destroy(instance)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except ValidationError:
-            return Response({"error": "삭제 실패"}, status=status.HTTP_400_BAD_REQUEST)
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
