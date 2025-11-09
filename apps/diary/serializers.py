@@ -20,9 +20,9 @@ class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
             "id",
             "date",
             "title",
-            "satisfaction",
+            "emotion",
             "notes",
-            "image_url",
+            "image",
             "weather",
             "created_at",
             "updated_at",
@@ -34,9 +34,10 @@ class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
 class DiaryCreateSerializer(serializers.ModelSerializer):
     lat =serializers.FloatField(write_only=True, required=True)
     lon =serializers.FloatField(write_only=True, required=True)
+    image = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = Diary
-        fields = ["date", "title", "satisfaction", "notes", "image_url", "lat", "lon"]
+        fields = ["date", "title", "emotion", "notes", "image", "lat", "lon"]
         # weather_data 말고, lat, lon을 불러와서 자동으로 날씨 데이터를 조회해 연결하기 위해
 
 class DiaryUpdateSerializer(serializers.ModelSerializer):
@@ -44,13 +45,7 @@ class DiaryUpdateSerializer(serializers.ModelSerializer):
         model = Diary
         fields = [
             "title",
-            "satisfaction",
+            "emotion",
             "notes",
-            "image_url",
+            "image",
         ]
-
-    def update(self, instance, validated_data):
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance

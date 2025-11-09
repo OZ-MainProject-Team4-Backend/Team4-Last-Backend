@@ -13,9 +13,12 @@ from .serializers import (
 from apps.weather.models import WeatherLocation
 from apps.weather import repository as weather_repo
 from apps.weather.services import openweather as ow
+from rest_framework.parsers import MultiPartParser, FormParser
+
 
 class DiaryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]  #  multipart/form-data 지원
     queryset = Diary.objects.filter(deleted_at__isnull=True)
 
     #  액션별 serializer 분기

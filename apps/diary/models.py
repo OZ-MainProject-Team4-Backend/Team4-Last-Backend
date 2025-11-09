@@ -33,9 +33,10 @@ class Diary(SoftDeleteModel):
     )
     title = models.CharField(max_length=255)
     notes = models.TextField(blank=True)
-    image_url = models.URLField(
-        max_length=500, blank=True, null=True
-    )  # 이미지 없이 저장해도 가능 - 에러발생 X
+    image = models.ImageField(
+        upload_to='diary_images/%Y/%m/%d/', # 파일이 저장될 경로 (날짜별로 분리)
+        blank=True, null=True,
+        verbose_name="첨부 이미지 파일")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
