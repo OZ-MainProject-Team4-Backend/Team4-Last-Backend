@@ -32,9 +32,11 @@ class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
 
 
 class DiaryCreateSerializer(serializers.ModelSerializer):
+    lat =serializers.FloatField(write_only=True, required=True)
+    lon =serializers.FloatField(write_only=True, required=True)
     class Meta:
         model = Diary
-        fields = ["date", "title", "satisfaction", "notes", "image_url", "weather_data"]
+        fields = ["date", "title", "satisfaction", "notes", "image_url", "lat", "lon"]
 
 
 class DiaryUpdateSerializer(serializers.ModelSerializer):
