@@ -105,7 +105,7 @@ namespace_packages = true
 mypy_path = ["."]
 
 [tool.django-stubs]
-django_settings_module = "apps.settings"
+django_settings_module = "settings.development"
 strict_settings = false
 apps = [
     "django.contrib.admin",
