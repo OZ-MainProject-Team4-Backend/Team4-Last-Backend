@@ -1,5 +1,6 @@
-from .base import *
 from django.core.cache import caches
+
+from .base import *
 
 # 캐시 설정
 CACHES = {
@@ -13,7 +14,9 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = False
 
 # 실제 서비스 도메인 + Swagger/로컬 테스트용 도메인 포함
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['.p-e.kr', 'localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list(
+    'DJANGO_ALLOWED_HOSTS', default=['.p-e.kr', 'localhost', '127.0.0.1']
+)
 
 # HTTPS 설정
 SESSION_COOKIE_SECURE = True
@@ -35,7 +38,7 @@ CORS_ALLOWED_ORIGINS = env.list(
     default=[
         'https://your-production-frontend.com',
         'http://localhost:3000',
-    ]
+    ],
 )
 
 # CSRF 신뢰 도메인 - Swagger/로컬 테스트 허용
@@ -44,5 +47,5 @@ CSRF_TRUSTED_ORIGINS = env.list(
     default=[
         'https://your-production-frontend.com',
         'http://localhost:8000',
-    ]
+    ],
 )
