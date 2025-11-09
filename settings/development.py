@@ -1,5 +1,8 @@
 from .base import *
 
+# Provide a default secret key for development and tools like mypy
+SECRET_KEY = env('DJANGO_SECRET_KEY', default='a-dummy-secret-key-for-development-and-mypy')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
