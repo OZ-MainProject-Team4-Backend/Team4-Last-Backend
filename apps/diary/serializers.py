@@ -37,12 +37,7 @@ class DiaryCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Diary
         fields = ["date", "title", "satisfaction", "notes", "image_url", "lat", "lon"]
-
-    def create(self, validated_data):
-        validated_data.pop("lat", None)
-        validated_data.pop("lon", None)
-        return super().create(validated_data)
-        # lat/lon은 DB 필드 아님 → 제거
+        # weather_data 말고, lat, lon을 불러와서 자동으로 날씨 데이터를 조회해 연결하기 위해
 
 class DiaryUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -52,8 +47,7 @@ class DiaryUpdateSerializer(serializers.ModelSerializer):
             "satisfaction",
             "notes",
             "image_url",
-            "weather_data",
-        ]  # date 제외
+        ]
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
