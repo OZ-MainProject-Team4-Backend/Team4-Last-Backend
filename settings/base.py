@@ -33,11 +33,11 @@ if os.path.exists(ENV_PATH):
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env("DJANGO_SECRET_KEY")
+SECRET_KEY = env("DJANGO_SECRET_KEY", default=None)
 
 # DEBUG, ALLOWED_HOSTS are defined in development.py or production.py
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS: list[str] = []
 
 
 # Application definition
@@ -70,7 +70,7 @@ MIDDLEWARE = [
 
 # These are defined in development.py or production.py
 CSRF_TRUSTED_ORIGINS = []
-CORS_ALLOWED_ORIGINS = []
+CORS_ALLOWED_ORIGINS: list[str] = []
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -96,7 +96,7 @@ WSGI_APPLICATION = 'settings.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-DATABASES = {"default": env.db("DATABASE_URL")}
+DATABASES = {"default": env.db("DATABASE_URL", default=None)}
 
 
 # Password validation
@@ -118,7 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-CACHES = {"default": env.cache("CACHE_URL")}
+CACHES = {"default": env.cache("CACHE_URL", default=None)}
 
 
 EMAIL_VERIF_CODE_TTL = 300  # 5분

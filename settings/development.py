@@ -3,6 +3,12 @@ from .base import *
 # Provide a default secret key for development and tools like mypy
 SECRET_KEY = env('DJANGO_SECRET_KEY', default='a-dummy-secret-key-for-development-and-mypy')
 
+# Provide a default database URL for development and tools like mypy
+DATABASES = {"default": env.db("DATABASE_URL", default="postgres://user:password@localhost:5432/mydatabase")}
+
+# Provide a default cache URL for development and tools like mypy
+CACHES = {"default": env.cache("CACHE_URL", default="locmemcache://")}
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
