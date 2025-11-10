@@ -38,7 +38,7 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", default=None)
 
 # DEBUG, ALLOWED_HOSTS are defined in development.py or production.py
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
-ALLOWED_HOSTS: list[str] = ["*"]
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -70,6 +70,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ==================== CORS 설정 ====================
 CORS_ALLOWED_ORIGINS: list[str] = []
 CORS_ALLOW_CREDENTIALS = True
 

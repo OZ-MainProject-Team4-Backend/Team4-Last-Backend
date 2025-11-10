@@ -1,10 +1,12 @@
 import logging
 import random
 import secrets
+from datetime import timedelta
 from urllib.parse import urlencode
 
+import requests
 from django.conf import settings
-from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth import authenticate, get_user_model
 from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils import timezone
@@ -13,8 +15,9 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import SocialAccount
+from .models import SocialAccount, Token
 from .serializers import (
     EmailSendSerializer,
     EmailVerifySerializer,
@@ -40,98 +43,120 @@ from .utils.social_auth import (
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-
-# ============================================
-# 응답 헬퍼 함수
-# ============================================
-def success_response(
-    message: str, data=None, status_code=200, http_status=status.HTTP_200_OK
-):
-    """통일된 성공 응답"""
-    response = {
-        "success": True,
-        "statusCode": status_code,
-        "message": message,
-    }
-    if data is not None:
-        response["data"] = data
-    return Response(response, status=http_status)
-
-
-def error_response(
-    code: str, message: str, http_status=status.HTTP_400_BAD_REQUEST, status_code=None
-):
-    """통일된 에러 응답"""
-    if status_code is None:
-        status_code_map = {
-            status.HTTP_400_BAD_REQUEST: 400,
-            status.HTTP_401_UNAUTHORIZED: 401,
-            status.HTTP_403_FORBIDDEN: 403,
-            status.HTTP_404_NOT_FOUND: 404,
-            status.HTTP_429_TOO_MANY_REQUESTS: 429,
-            status.HTTP_500_INTERNAL_SERVER_ERROR: 500,
-        }
-        status_code = status_code_map.get(http_status, 400)
-
-    return Response(
-        {
-            "success": False,
-            "statusCode": status_code,
-            "error": {
-                "code": code,
-                "message": message,
-            },
-        },
-        status=http_status,
-    )
-
-
-# ============================================
-# 캐시 키 함수
-# ============================================
-def key_verif(email: str) -> str:
-    return f"email_verif:{email.lower()}"
-
-
-def key_preverified(email: str) -> str:
-    return f"email_preverified:{email.lower()}"
-
-
-def key_resend(email: str) -> str:
-    return f"email_verif_resend:{email.lower()}"
-
-
-def key_count(email: str) -> str:
-    return f"email_verif_count:{email.lower()}"
-
-
-def key_nickname_valid(nickname: str) -> str:
-    return f"nickname_valid:{nickname.lower()}"
-
-
-# ============================================
-# 상수
-# ============================================
+# ============ Constants ============
 EMAIL_VERIF_CODE_TTL = 300
 EMAIL_PREVER_TTL = 1800
 EMAIL_VERIF_RESEND_TTL = 60
 EMAIL_VERIF_MAX_PER_HOUR = 5
 
 
-def gen_code(n=6) -> str:
+# ============ Helpers ============
+def success_response(
+    message: str, data=None, status_code=200, http_status=status.HTTP_200_OK
+):
+    return Response(
+        (
+            {
+                "success": True,
+                "statusCode": status_code,
+                "message": message,
+                "data": data,
+            }
+            if data
+            else {
+                "success": True,
+                "statusCode": status_code,
+                "message": message,
+            }
+        ),
+        status=http_status,
+    )
+
+
+def error_response(
+    code: str, message: str, http_status=status.HTTP_400_BAD_REQUEST, status_code=None
+):
+    status_code_map = {
+        status.HTTP_400_BAD_REQUEST: 400,
+        status.HTTP_401_UNAUTHORIZED: 401,
+        status.HTTP_403_FORBIDDEN: 403,
+        status.HTTP_404_NOT_FOUND: 404,
+        status.HTTP_429_TOO_MANY_REQUESTS: 429,
+        status.HTTP_500_INTERNAL_SERVER_ERROR: 500,
+    }
+    return Response(
+        {
+            "success": False,
+            "statusCode": status_code or status_code_map.get(http_status, 400),
+            "error": {"code": code, "message": message},
+        },
+        status=http_status,
+    )
+
+
+def gen_code(n=6):
     return "".join(str(random.randint(0, 9)) for _ in range(n))
 
 
-# ============================================
-# 인증 Views
-# ============================================
+def key_verif(email: str):
+    return f"email_verif:{email.lower()}"
 
 
+def key_preverified(email: str):
+    return f"email_preverified:{email.lower()}"
+
+
+def key_resend(email: str):
+    return f"email_verif_resend:{email.lower()}"
+
+
+def key_count(email: str):
+    return f"email_verif_count:{email.lower()}"
+
+
+def key_nickname_valid(nickname: str):
+    return f"nickname_valid:{nickname.lower()}"
+
+
+def create_jwt_token(user):
+    """JWT 토큰 생성 및 DB 저장"""
+    refresh = RefreshToken.for_user(user)
+    access_token = str(refresh.access_token)
+    refresh_token = str(refresh)
+
+    Token.objects.update_or_create(
+        user=user,
+        defaults={
+            "access_jwt": access_token,
+            "refresh_jwt": refresh_token,
+            "access_expires_at": timezone.now() + timedelta(minutes=15),
+            "refresh_expires_at": timezone.now() + timedelta(days=7),
+            "revoked": False,
+        },
+    )
+    return access_token, refresh_token
+
+
+def get_user_data(user):
+    """사용자 데이터 포맷팅"""
+    return {
+        "id": user.id,
+        "email": user.email,
+        "nickname": user.nickname,
+        "gender": getattr(user, "gender", None),
+        "age_group": getattr(user, "age_group", None),
+        "is_verified": user.email_verified,
+        "created_at": (
+            user.created_at.isoformat() if hasattr(user, "created_at") else None
+        ),
+    }
+
+
+# ============ Auth Views ============
 class NicknameValidateView(APIView):
     permission_classes = [AllowAny]
     serializer_class = NicknameValidateSerializer
 
-    @extend_schema(request=NicknameValidateSerializer, responses={200: dict})
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -141,20 +166,19 @@ class NicknameValidateView(APIView):
             nickname__iexact=nickname, deleted_at__isnull=True
         ).exists():
             return error_response(
-                code="nickname_already_in_use",
-                message="이미 사용 중인 닉네임입니다",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "nickname_already_in_use",
+                "이미 사용 중인 닉네임입니다",
+                status.HTTP_400_BAD_REQUEST,
             )
 
         cache.set(key_nickname_valid(nickname), True, timeout=300)
-        return success_response(message="닉네임 사용가능", status_code=200)
+        return success_response("닉네임 사용가능", status_code=200)
 
 
 class EmailSendView(APIView):
     permission_classes = [AllowAny]
     serializer_class = EmailSendSerializer
 
-    @extend_schema(request=EmailSendSerializer, responses={200: dict})
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -164,30 +188,24 @@ class EmailSendView(APIView):
             email__iexact=email, email_verified=True, deleted_at__isnull=True
         ).exists():
             return error_response(
-                code="email_already_verified",
-                message="이미 인증이 된 이메일",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "email_already_verified",
+                "이미 인증이 된 이메일",
+                status.HTTP_400_BAD_REQUEST,
             )
 
         if cache.get(key_resend(email)):
             return error_response(
-                code="email_resend_limit",
-                message="재전송 제한",
-                http_status=status.HTTP_429_TOO_MANY_REQUESTS,
+                "email_resend_limit", "재전송 제한", status.HTTP_429_TOO_MANY_REQUESTS
             )
 
         cnt_key = key_count(email)
         cnt = cache.get(cnt_key) or 0
         if cnt >= EMAIL_VERIF_MAX_PER_HOUR:
             return error_response(
-                code="email_send_limit",
-                message="발송 초과",
-                http_status=status.HTTP_429_TOO_MANY_REQUESTS,
+                "email_send_limit", "발송 초과", status.HTTP_429_TOO_MANY_REQUESTS
             )
-        if cnt:
-            cache.incr(cnt_key)
-        else:
-            cache.set(cnt_key, 1, timeout=3600)
+
+        cache.incr(cnt_key) if cnt else cache.set(cnt_key, 1, timeout=3600)
 
         code = gen_code(6)
         cache.set(key_verif(email), code, timeout=EMAIL_VERIF_CODE_TTL)
@@ -200,19 +218,18 @@ class EmailSendView(APIView):
             cache.delete(key_resend(email))
             logger.exception(f"Email send failed: {str(e)}")
             return error_response(
-                code="email_send_failed",
-                message="메일 발송 실패",
-                http_status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "email_send_failed",
+                "메일 발송 실패",
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        return success_response(message="인증 코드 발송완료", status_code=200)
+        return success_response("인증 코드 발송완료", status_code=200)
 
 
 class EmailVerifyView(APIView):
     permission_classes = [AllowAny]
     serializer_class = EmailVerifySerializer
 
-    @extend_schema(request=EmailVerifySerializer, responses={200: dict})
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -222,39 +239,33 @@ class EmailVerifyView(APIView):
         cached = cache.get(key_verif(email))
         if not cached or cached != code:
             return error_response(
-                code="code_invalid_or_expired",
-                message="코드 만료 또는 불일치",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "code_invalid_or_expired",
+                "코드 만료 또는 불일치",
+                status.HTTP_400_BAD_REQUEST,
             )
 
         cache.delete(key_verif(email))
         cache.set(key_preverified(email), True, timeout=EMAIL_PREVER_TTL)
-        return success_response(message="이메일 인증 완료", status_code=200)
+        return success_response("이메일 인증 완료", status_code=200)
 
 
 class SignUpView(APIView):
     permission_classes = [AllowAny]
     serializer_class = SignupSerializer
 
-    @extend_schema(request=SignupSerializer, responses={201: dict})
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         email = serializer.validated_data.get("email").strip().lower()
 
         if not cache.get(key_preverified(email)):
             return error_response(
-                code="email_not_verified",
-                message="이메일 미검증",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "email_not_verified", "이메일 미검증", status.HTTP_400_BAD_REQUEST
             )
 
         if User.objects.filter(email__iexact=email, deleted_at__isnull=True).exists():
             return error_response(
-                code="email_duplicate",
-                message="이메일 중복",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "email_duplicate", "이메일 중복", status.HTTP_400_BAD_REQUEST
             )
 
         nickname = serializer.validated_data.get("nickname")
@@ -265,34 +276,17 @@ class SignUpView(APIView):
             ).exists()
         ):
             return error_response(
-                code="nickname_duplicate",
-                message="닉네임 중복",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "nickname_duplicate", "닉네임 중복", status.HTTP_400_BAD_REQUEST
             )
 
         user = serializer.create(serializer.validated_data)
         user.email_verified = True
         user.save(update_fields=["email_verified"])
-
         cache.delete(key_preverified(email))
 
-        login(request, user)
-
-        user_data = {
-            "id": user.id,
-            "email": user.email,
-            "nickname": user.nickname,
-            "gender": getattr(user, "gender", None),
-            "age_group": getattr(user, "age_group", None),
-            "is_verified": user.email_verified,
-            "created_at": (
-                user.created_at.isoformat() if hasattr(user, "created_at") else None
-            ),
-        }
-
         return success_response(
-            message="회원가입 완료",
-            data={"user": user_data},
+            "회원가입 완료",
+            data={"user": get_user_data(user)},
             status_code=201,
             http_status=status.HTTP_201_CREATED,
         )
@@ -302,87 +296,98 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
 
-    @extend_schema(request=LoginSerializer, responses={200: dict})
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         user = serializer.validated_data["user"]
 
         if not getattr(user, "email_verified", False):
             return error_response(
-                code="email_not_verified",
-                message="이메일 인증 필요",
-                http_status=status.HTTP_401_UNAUTHORIZED,
+                "email_not_verified", "이메일 인증 필요", status.HTTP_401_UNAUTHORIZED
             )
 
         if not getattr(user, "is_active", True) or getattr(user, "deleted_at", None):
             return error_response(
-                code="account_inactive",
-                message="비활성한 계정이거나 탈퇴 계정입니다",
-                http_status=status.HTTP_403_FORBIDDEN,
+                "account_inactive",
+                "비활성한 계정이거나 탈퇴 계정입니다",
+                status.HTTP_403_FORBIDDEN,
             )
 
-        login(request, user)
-
-        user_data = {
-            "id": user.id,
-            "email": user.email,
-            "nickname": user.nickname,
-            "is_verified": user.email_verified,
-            "created_at": (
-                user.created_at.isoformat() if hasattr(user, "created_at") else None
-            ),
-        }
-
+        access, refresh = create_jwt_token(user)
         return success_response(
-            message="로그인 성공",
-            data={"user": user_data},
+            "로그인 성공",
+            data={"user": get_user_data(user), "access": access, "refresh": refresh},
             status_code=200,
         )
 
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = None
 
-    @extend_schema(responses={204: None})
     def post(self, request):
-        logout(request)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            token = Token.objects.get(user=request.user)
+            token.revoked = True
+            token.save(update_fields=["revoked"])
+            return success_response("로그아웃 완료", status_code=200)
+        except Token.DoesNotExist:
+            return error_response(
+                "token_not_found", "토큰을 찾을 수 없습니다", status.HTTP_404_NOT_FOUND
+            )
 
 
-# ============================================
-# 사용자 관리 Views
-# ============================================
+class RefreshTokenView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return error_response(
+                "refresh_token_required",
+                "Refresh 토큰이 필요합니다",
+                status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            access_token = str(refresh.access_token)
+            user_id = refresh.get("user_id")
+            token = Token.objects.get(user_id=user_id, revoked=False)
+            token.access_jwt = access_token
+            token.access_expires_at = timezone.now() + timedelta(minutes=15)
+            token.save(update_fields=["access_jwt", "access_expires_at"])
+            return success_response(
+                "토큰 갱신 완료", data={"access": access_token}, status_code=200
+            )
+        except Exception as e:
+            logger.error(f"Token refresh error: {str(e)}")
+            return error_response(
+                "invalid_refresh_token",
+                "유효하지 않은 Refresh 토큰",
+                status.HTTP_401_UNAUTHORIZED,
+            )
 
 
+# ============ User Views ============
 class MyPageView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(responses={200: dict})
     def get(self, request):
         u = request.user
-        data = {
-            "id": u.id,
-            "email": u.email,
-            "nickname": u.nickname,
-            "gender": getattr(u, "gender", None),
-            "age_group": getattr(u, "age_group", None),
-            "is_verified": u.email_verified,
-            "favorite_regions": getattr(u, "favorite_regions", None) or [],
-            "created_at": (
-                u.created_at.isoformat() if hasattr(u, "created_at") else None
-            ),
-        }
-        return success_response(data=data, status_code=200)
+        return success_response(
+            "",
+            data={
+                **get_user_data(u),
+                "favorite_regions": getattr(u, "favorite_regions", None) or [],
+            },
+            status_code=200,
+        )
 
 
 class ProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserProfileSerializer
 
-    @extend_schema(request=UserProfileSerializer, responses={200: dict})
     def patch(self, request):
         user = request.user
         serializer = self.serializer_class(
@@ -391,7 +396,6 @@ class ProfileUpdateView(APIView):
         serializer.is_valid(raise_exception=True)
 
         new_email = serializer.validated_data.get("email")
-
         if new_email and new_email.strip().lower() != user.email.lower():
             pending_key = f"email_change_pending:{user.id}:{new_email.strip().lower()}"
             code = gen_code(6)
@@ -402,42 +406,33 @@ class ProfileUpdateView(APIView):
                 cache.delete(pending_key)
                 logger.exception(f"Email send failed: {str(e)}")
                 return error_response(
-                    code="email_send_failed",
-                    message="메일 발송 실패",
-                    http_status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "email_send_failed",
+                    "메일 발송 실패",
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
-            return success_response(
-                message="이메일 변경 인증 코드 발송 완료",
-                status_code=200,
-            )
+            return success_response("이메일 변경 인증 코드 발송 완료", status_code=200)
 
         serializer.save()
         user.updated_at = timezone.now()
         user.save(update_fields=["updated_at"])
-        return success_response(message="프로필 수정 완료", status_code=200)
+        return success_response("프로필 수정 완료", status_code=200)
 
 
 class FavoriteRegionsUpdateView(APIView):
-    """즐겨찾는 지역 수정"""
-
     permission_classes = [IsAuthenticated]
     serializer_class = FavoriteRegionsSerializer
 
-    @extend_schema(request=FavoriteRegionsSerializer, responses={200: dict})
     def patch(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         user = request.user
-        favorite_regions = serializer.validated_data["favorite_regions"]
-
-        user.favorite_regions = favorite_regions
+        regions = serializer.validated_data["favorite_regions"]
+        user.favorite_regions = regions
         user.updated_at = timezone.now()
         user.save(update_fields=["favorite_regions", "updated_at"])
-
         return success_response(
-            message="즐겨찾는 지역 수정 완료",
-            data={"favorite_regions": favorite_regions},
+            "즐겨찾는 지역 수정 완료",
+            data={"favorite_regions": regions},
             status_code=200,
         )
 
@@ -445,7 +440,6 @@ class FavoriteRegionsUpdateView(APIView):
 class EmailChangeVerifyView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=EmailVerifySerializer, responses={200: dict})
     def post(self, request):
         user = request.user
         new_email = (request.data.get("email") or "").strip().lower()
@@ -453,38 +447,26 @@ class EmailChangeVerifyView(APIView):
 
         if not new_email or not code:
             return error_response(
-                code="validation_failed",
-                message="email과 인증코드가 필요합니다",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "validation_failed",
+                "email과 인증코드가 필요합니다",
+                status.HTTP_400_BAD_REQUEST,
             )
 
         pending_key = f"email_change_pending:{user.id}:{new_email}"
         cached = cache.get(pending_key)
         if not cached or cached != code:
             return error_response(
-                code="code_invalid_or_expired",
-                message="코드 만료 또는 불일치",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "code_invalid_or_expired",
+                "코드 만료 또는 불일치",
+                status.HTTP_400_BAD_REQUEST,
             )
 
         user.email = new_email
         user.email_verified = True
         user.save(update_fields=["email", "email_verified"])
         cache.delete(pending_key)
-
-        user_data = {
-            "id": user.id,
-            "email": user.email,
-            "nickname": user.nickname,
-            "updated_at": (
-                user.updated_at.isoformat() if hasattr(user, "updated_at") else None
-            ),
-        }
-
         return success_response(
-            message="이메일 변경 완료",
-            data={"user": user_data},
-            status_code=200,
+            "이메일 변경 완료", data={"user": get_user_data(user)}, status_code=200
         )
 
 
@@ -492,158 +474,91 @@ class PasswordChangeView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = PasswordChangeSerializer
 
-    @extend_schema(request=PasswordChangeSerializer, responses={200: dict})
     def patch(self, request):
         serializer = self.serializer_class(
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return success_response(message="비밀번호 변경 완료", status_code=200)
+        return success_response("비밀번호 변경 완료", status_code=200)
 
 
 class UserDeleteView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserDeleteSerializer
 
-    @extend_schema(request=UserDeleteSerializer, responses={200: dict})
     def delete(self, request):
         user = request.user
-
         if user.deleted_at:
             return error_response(
-                code="already_deleted",
-                message="이미 탈퇴한 계정입니다",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "already_deleted", "이미 탈퇴한 계정입니다", status.HTTP_400_BAD_REQUEST
             )
 
         user.deleted_at = timezone.now()
         user.is_active = False
         user.save(update_fields=["deleted_at", "is_active"])
-
-        logout(request)
-
         logger.info(f"User deleted: {user.email}")
-
         return success_response(
-            message="회원탈퇴 완료",
-            data={"deleted": True},
-            status_code=200,
+            "회원탈퇴 완료", data={"deleted": True}, status_code=200
         )
 
 
-# ============================================
-# 소셜 로그인 Views (기존 코드와 동일)
-# ============================================
-
-
+# ============ Social Views ============
 class SocialLoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = SocialLoginSerializer
 
-    def get(self, request, provider):
-        if provider not in settings.SOCIAL_PROVIDERS:
-            return error_response(
-                code="invalid_provider",
-                message="지원하지 않는 소셜 로그인",
-                http_status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        config = settings.SOCIAL_PROVIDERS[provider]
-        params = {
-            "client_id": config["client_id"],
-            "redirect_uri": config["redirect_uri"],
-            "response_type": "code",
-        }
-
-        state = secrets.token_urlsafe(16)
-        request.session["oauth_state"] = state
-        params["state"] = state
-
-        if config.get("scope"):
-            params["scope"] = config["scope"]
-
-        auth_url = f"{config['auth_url']}?{urlencode(params)}"
-        return redirect(auth_url)
-
-    @extend_schema(request=SocialLoginSerializer, responses={200: dict})
     def post(self, request, provider):
         if provider not in settings.SOCIAL_PROVIDERS:
             return error_response(
-                code="invalid_provider",
-                message="지원하지 않는 소셜 로그인",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "invalid_provider",
+                "지원하지 않는 소셜 로그인",
+                status.HTTP_400_BAD_REQUEST,
             )
 
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        access_token = serializer.validated_data["token"]
 
         try:
-            social_user_info = verify_social_token(provider, access_token)
+            social_user_info = verify_social_token(
+                provider, serializer.validated_data["token"]
+            )
             user = SocialAuthService.get_or_create_user_from_social(
                 provider, social_user_info
             )
 
             if user.deleted_at or not user.is_active:
-                logger.warning(f"Inactive user login attempt: {user.email}")
                 return error_response(
-                    code="account_inactive",
-                    message="비활성 계정",
-                    http_status=status.HTTP_403_FORBIDDEN,
+                    "account_inactive", "비활성 계정", status.HTTP_403_FORBIDDEN
                 )
 
-            login(request, user)
-
+            access, refresh = create_jwt_token(user)
             logger.info(f"Social login success: {provider} - {user.email}")
-
-            user_data = {
-                "id": user.id,
-                "email": user.email,
-                "nickname": user.nickname,
-                "is_verified": user.email_verified,
-            }
-
             return success_response(
-                message="로그인 성공",
-                data={"user": user_data},
+                "로그인 성공",
+                data={
+                    "user": get_user_data(user),
+                    "access": access,
+                    "refresh": refresh,
+                },
                 status_code=200,
             )
-
-        except SocialProviderNotFoundError as e:
-            logger.error(f"Provider not found: {str(e)}")
-            return error_response(
-                code="provider_not_found",
-                message=str(e),
-                http_status=status.HTTP_400_BAD_REQUEST,
-            )
         except SocialTokenInvalidError:
-            logger.warning(f"Invalid social token: {provider}")
             return error_response(
-                code="token_invalid",
-                message="소셜 인증 실패",
-                http_status=status.HTTP_401_UNAUTHORIZED,
-            )
-        except ValueError as e:
-            logger.warning(f"Social login validation error: {str(e)}")
-            return error_response(
-                code="validation_failed",
-                message=str(e),
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "token_invalid", "소셜 인증 실패", status.HTTP_401_UNAUTHORIZED
             )
         except Exception as e:
-            logger.exception(f"Social login unexpected error: {str(e)}")
+            logger.exception(f"Social login error: {str(e)}")
             return error_response(
-                code="internal_error",
-                message="로그인 처리 중 오류가 발생했습니다",
-                http_status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "internal_error",
+                "로그인 처리 중 오류가 발생했습니다",
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
 class SocialCallbackView(APIView):
     permission_classes = [AllowAny]
 
-    @extend_schema(responses={302: None})
     def get(self, request, provider):
         if provider not in settings.SOCIAL_PROVIDERS:
             return redirect("http://localhost:3000/login/failed")
@@ -654,12 +569,6 @@ class SocialCallbackView(APIView):
         if not code:
             return redirect("http://localhost:3000/login/failed")
 
-        if provider == "naver":
-            state = request.GET.get("state")
-            session_state = request.session.get("oauth_state")
-            if not state or state != session_state:
-                return redirect("http://localhost:3000/login/failed")
-
         try:
             token_data = {
                 "grant_type": "authorization_code",
@@ -669,19 +578,13 @@ class SocialCallbackView(APIView):
                 "redirect_uri": config["redirect_uri"],
             }
 
-            import requests
-
             token_response = requests.post(
                 config["token_url"], data=token_data, timeout=5
             )
-
             if token_response.status_code != 200:
-                logger.error(f"Token exchange failed: {token_response.text}")
                 return redirect("http://localhost:3000/login/failed")
 
-            token_json = token_response.json()
-            access_token = token_json.get("access_token")
-
+            access_token = token_response.json().get("access_token")
             user_info_response = requests.get(
                 config["user_info_url"],
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -692,27 +595,7 @@ class SocialCallbackView(APIView):
                 return redirect("http://localhost:3000/login/failed")
 
             user_data = user_info_response.json()
-
-            if provider == "kakao":
-                social_user_info = {
-                    "provider_user_id": str(user_data["id"]),
-                    "email": user_data.get("kakao_account", {}).get("email"),
-                    "nickname": user_data.get("properties", {}).get("nickname"),
-                }
-            elif provider == "naver":
-                resp = user_data.get("response", {})
-                social_user_info = {
-                    "provider_user_id": resp.get("id"),
-                    "email": resp.get("email"),
-                    "nickname": resp.get("nickname") or resp.get("name"),
-                }
-            elif provider == "google":
-                social_user_info = {
-                    "provider_user_id": user_data.get("id"),
-                    "email": user_data.get("email"),
-                    "nickname": user_data.get("name"),
-                }
-
+            social_user_info = self._parse_social_user(provider, user_data)
             user = SocialAuthService.get_or_create_user_from_social(
                 provider, social_user_info
             )
@@ -720,100 +603,74 @@ class SocialCallbackView(APIView):
             if user.deleted_at or not user.is_active:
                 return redirect("http://localhost:3000/login/failed")
 
-            login(request, user)
-            logger.info(f"Social login success: {provider} - {user.email}")
-
-            return redirect("http://localhost:3000/login/success")
-
+            access, refresh = create_jwt_token(user)
+            logger.info(f"Social callback success: {provider} - {user.email}")
+            return redirect(
+                f"http://localhost:3000/login/success?access={access}&refresh={refresh}"
+            )
         except Exception as e:
             logger.exception(f"Social callback error: {str(e)}")
             return redirect("http://localhost:3000/login/failed")
 
-
-class SocialAuthServiceView(APIView):
-    permission_classes = [AllowAny]
-
     @staticmethod
-    def get_or_create_user_from_social(provider, social_user_info):
-        email = social_user_info.get("email")
-        nickname = social_user_info.get("nickname") or (
-            email.split("@")[0] if email else None
-        )
-
-        if not email:
-            raise ValueError("이메일 정보가 필요합니다")
-
-        try:
-            user = User.objects.get(email__iexact=email)
-            return user
-        except User.DoesNotExist:
-            base_nickname = nickname
-            suffix = 1
-            while User.objects.filter(nickname__iexact=nickname).exists():
-                nickname = f"{base_nickname}{suffix}"
-                suffix += 1
-
-            user = User.objects.create_user(
-                email=email,
-                nickname=nickname,
-                email_verified=True,
-            )
-            return user
+    def _parse_social_user(provider, user_data):
+        if provider == "kakao":
+            return {
+                "provider_user_id": str(user_data["id"]),
+                "email": user_data.get("kakao_account", {}).get("email"),
+                "nickname": user_data.get("properties", {}).get("nickname"),
+            }
+        elif provider == "naver":
+            resp = user_data.get("response", {})
+            return {
+                "provider_user_id": resp.get("id"),
+                "email": resp.get("email"),
+                "nickname": resp.get("nickname") or resp.get("name"),
+            }
+        else:  # google
+            return {
+                "provider_user_id": user_data.get("id"),
+                "email": user_data.get("email"),
+                "nickname": user_data.get("name"),
+            }
 
 
 class SocialLinkView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SocialLinkSerializer
 
-    @extend_schema(request=SocialLinkSerializer, responses={200: dict})
     def post(self, request, provider):
         if provider not in settings.SOCIAL_PROVIDERS:
             return error_response(
-                code="invalid_provider",
-                message="지원하지 않는 소셜 로그인",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "invalid_provider",
+                "지원하지 않는 소셜 로그인",
+                status.HTTP_400_BAD_REQUEST,
             )
 
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        access_token = serializer.validated_data["token"]
 
         try:
-            social_user_info = verify_social_token(provider, access_token)
-
+            social_user_info = verify_social_token(
+                provider, serializer.validated_data["token"]
+            )
             SocialAuthService.link_social_account(
                 request.user, provider, social_user_info
             )
-
             logger.info(f"Social account linked: {provider} - {request.user.email}")
-
-            return success_response(
-                message="소셜 계정 연결 완료",
-                status_code=200,
-            )
-
+            return success_response("소셜 계정 연결 완료", status_code=200)
         except SocialTokenInvalidError:
-            logger.warning(f"Invalid social token for linking: {provider}")
             return error_response(
-                code="token_invalid",
-                message="소셜 인증 실패",
-                http_status=status.HTTP_401_UNAUTHORIZED,
+                "token_invalid", "소셜 인증 실패", status.HTTP_401_UNAUTHORIZED
             )
-
         except ValueError as e:
-            logger.warning(f"Social link validation error: {str(e)}")
-            return error_response(
-                code="validation_failed",
-                message=str(e),
-                http_status=status.HTTP_409_CONFLICT,
-            )
-
+            return error_response("validation_failed", str(e), status.HTTP_409_CONFLICT)
         except Exception as e:
-            logger.exception(f"Social link unexpected error: {str(e)}")
+            logger.exception(f"Social link error: {str(e)}")
             return error_response(
-                code="internal_error",
-                message="계정 연결 중 오류가 발생했습니다",
-                http_status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "internal_error",
+                "계정 연결 중 오류가 발생했습니다",
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -821,34 +678,28 @@ class SocialUnlinkView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SocialUnlinkSerializer
 
-    @extend_schema(responses={200: dict})
     def delete(self, request, provider):
         if provider not in settings.SOCIAL_PROVIDERS:
             return error_response(
-                code="invalid_provider",
-                message="지원하지 않는 소셜 로그인",
-                http_status=status.HTTP_400_BAD_REQUEST,
+                "invalid_provider",
+                "지원하지 않는 소셜 로그인",
+                status.HTTP_400_BAD_REQUEST,
             )
+
         try:
             SocialAuthService.unlink_social_account(request.user, provider)
             logger.info(f"Social account unlinked: {provider} - {request.user.email}")
-            return success_response(
-                message="소셜 계정 해제 완료",
-                status_code=200,
-            )
+            return success_response("소셜 계정 해제 완료", status_code=200)
         except SocialAccount.DoesNotExist:
-            logger.warning(
-                f"Social account not found: {provider} - {request.user.email}"
-            )
             return error_response(
-                code="social_account_not_found",
-                message="연결된 소셜 계정 없음",
-                http_status=status.HTTP_404_NOT_FOUND,
+                "social_account_not_found",
+                "연결된 소셜 계정 없음",
+                status.HTTP_404_NOT_FOUND,
             )
         except Exception as e:
-            logger.exception(f"Social unlink unexpected error: {str(e)}")
+            logger.exception(f"Social unlink error: {str(e)}")
             return error_response(
-                code="internal_error",
-                message="계정 연결 해제 중 오류가 발생했습니다",
-                http_status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "internal_error",
+                "계정 연결 해제 중 오류가 발생했습니다",
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
