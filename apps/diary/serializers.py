@@ -13,6 +13,7 @@ class DiaryListSerializer(serializers.ModelSerializer):  # 목록조회
 
 class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
     weather = WeatherDataSerializer(source="weather_data", read_only=True)
+    icon = serializers.CharField(source="weather_data.icon", read_only=True)
 
     class Meta:
         model = Diary
@@ -24,6 +25,7 @@ class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
             "notes",
             "image",
             "weather",
+            "icon",
             "created_at",
             "updated_at",
         ]
