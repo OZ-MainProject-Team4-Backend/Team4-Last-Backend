@@ -134,4 +134,25 @@ class SocialAccount(models.Model):
         return f"{self.provider} - {self.user.email}"
 
 
-##
+class Token(models.Model):
+
+    id = models.BigAutoField(primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="token")
+    access_jwt = models.CharField(max_length=500)
+    refresh_jwt = models.CharField(max_length=500)
+    access_expires_at = models.DateTimeField()
+    refresh_expires_at = models.DateTimeField()
+    revoked = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "tokens"
+        verbose_name = "Token"
+        verbose_name_plural = "Tokens"
+        indexes = [
+            models.Index(fields=["user", "revoked"]),
+            models.Index(fields=["refresh_expires_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.created_at}"

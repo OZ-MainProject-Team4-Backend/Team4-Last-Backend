@@ -11,16 +11,17 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 from typing import TypedDict
 
 import environ
-from django.conf.global_settings import CSRF_TRUSTED_ORIGINS
 from dotenv import load_dotenv
 
 ENV_FILE = os.environ.get("ENV_FILE", "env/.env")
 load_dotenv(dotenv_path=ENV_FILE)
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -49,6 +50,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework_simplejwt',
     'drf_spectacular',
     'apps.users',
     'apps.locations',
@@ -62,16 +65,12 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# These are defined in development.py or production.py
-CSRF_TRUSTED_ORIGINS = []
 CORS_ALLOWED_ORIGINS: list[str] = []
-
 CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'settings.urls'
@@ -118,99 +117,16 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# ==================== Redis Cache 설정 ====================
 CACHES = {"default": env.cache("CACHE_URL", default=None)}
 
 
+# ==================== 이메일 설정 ====================
 EMAIL_VERIF_CODE_TTL = 300  # 5분
 EMAIL_PREVER_TTL = 1800  # 30분
 EMAIL_VERIF_RESEND_TTL = 60  # 1분
 EMAIL_VERIF_MAX_PER_HOUR = 5
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
-
-SESSION_COOKIE_SECURE = True  # HTTPS 사용 시 True
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SECURE = True
-# CSRF_TRUSTED_ORIGINS = [http://team4.p-e.kr/]
-AUTH_USER_MODEL = "users.User"
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# 소셜로그인
-SOCIAL_PROVIDERS = {
-    "kakao": {
-        "name": "카카오",
-        "client_id": os.environ.get("KAKAO_CLIENT_ID"),
-        "client_secret": os.environ.get("KAKAO_CLIENT_SECRET"),
-        "auth_url": "https://kauth.kakao.com/oauth/authorize",
-        "token_url": "https://kauth.kakao.com/oauth/token",
-        "user_info_url": "https://kapi.kakao.com/v2/user/me",
-    },
-    "naver": {
-        "name": "네이버",
-        "client_id": os.environ.get("NAVER_CLIENT_ID"),
-        "client_secret": os.environ.get("NAVER_CLIENT_SECRET"),
-        "auth_url": "https://nid.naver.com/oauth2.0/authorize",
-        "token_url": "https://nid.naver.com/oauth2.0/token",
-        "user_info_url": "https://openapi.naver.com/v1/nid/me",
-    },
-    "google": {
-        "name": "구글",
-        "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
-        "client_secret": os.environ.get("GOOGLE_CLIENT_SECRET"),
-        "auth_url": "https://accounts.google.com/o/oauth2/v2/auth",
-        "token_url": "https://oauth2.googleapis.com/token",
-        "user_info_url": "https://www.googleapis.com/oauth2/v2/userinfo",
-        "scope": "openid email profile",
-    },
-}
-
-
-# 세션을 Redis에 저장하도록 설정
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
-
-
-REST_FRAMEWORK = {
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.SessionAuthentication",
-    ),
-    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
-}
-
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'Your Project API',
-    'DESCRIPTION': 'API documentation',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    # Swagger UI에서 인증 없이 볼 수 있게
-    "SCHEMA_PATH_PREFIX": "/api",
-    'SWAGGER_UI_SETTINGS': {
-        'persistAuthorization': False,
-    },
-}
-
-# EMAIL
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.naver.com"
 EMAIL_PORT = 465
@@ -221,6 +137,96 @@ EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default=None)
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
+# ==================== Internationalization ====================
+LANGUAGE_CODE = 'ko-kr'
+TIME_ZONE = 'Asia/Seoul'
+USE_I18N = True
+USE_TZ = True
+
+
+# ==================== 인증 설정 ====================
+AUTH_USER_MODEL = "users.User"
+
+# JWT 설정
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+}
+
+
+# ==================== REST Framework 설정 ====================
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "apps.users.authentication.CustomJWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+}
+
+
+# ==================== Swagger/Spectacular 설정 ====================
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Your Project API',
+    'DESCRIPTION': 'API documentation',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    "SCHEMA_PATH_PREFIX": "/api",
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+        'displayOperationId': False,
+    },
+}
+
+
+# ==================== 정적 파일 ====================
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# ==================== 소셜 로그인 설정 ====================
+SOCIAL_PROVIDERS = {
+    "kakao": {
+        "name": "카카오",
+        "client_id": os.environ.get("KAKAO_CLIENT_ID"),
+        "client_secret": os.environ.get("KAKAO_CLIENT_SECRET"),
+        "auth_url": "https://kauth.kakao.com/oauth/authorize",
+        "token_url": "https://kauth.kakao.com/oauth/token",
+        "user_info_url": "https://kapi.kakao.com/v2/user/me",
+        "redirect_uri": os.environ.get("KAKAO_REDIRECT_URI"),
+    },
+    "naver": {
+        "name": "네이버",
+        "client_id": os.environ.get("NAVER_CLIENT_ID"),
+        "client_secret": os.environ.get("NAVER_CLIENT_SECRET"),
+        "auth_url": "https://nid.naver.com/oauth2.0/authorize",
+        "token_url": "https://nid.naver.com/oauth2.0/token",
+        "user_info_url": "https://openapi.naver.com/v1/nid/me",
+        "redirect_uri": os.environ.get("NAVER_REDIRECT_URI"),
+    },
+    "google": {
+        "name": "구글",
+        "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
+        "client_secret": os.environ.get("GOOGLE_CLIENT_SECRET"),
+        "auth_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": "https://oauth2.googleapis.com/token",
+        "user_info_url": "https://www.googleapis.com/oauth2/v2/userinfo",
+        "scope": "openid email profile",
+        "redirect_uri": os.environ.get("GOOGLE_REDIRECT_URI"),
+    },
+}
+
+
+# ==================== OpenWeather 설정 ====================
 class OpenWeatherConf(TypedDict):
     BASE_URL: str
     API_KEY: str
