@@ -18,22 +18,20 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
-from rest_framework import permissions
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from rest_framework import permissions
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/api/schema/swagger-ui/', permanent=False)),
-
     path(
         "api/schema/",
         SpectacularAPIView.as_view(permission_classes=[permissions.AllowAny]),
         name="schema",
     ),
-
     path(
         "api/schema/swagger-ui/",
         SpectacularSwaggerView.as_view(
@@ -42,7 +40,6 @@ urlpatterns = [
         ),
         name="swagger-ui",
     ),
-
     path(
         "api/schema/redoc/",
         SpectacularRedocView.as_view(
@@ -51,10 +48,8 @@ urlpatterns = [
         ),
         name="redoc",
     ),
-
     # Admin
     path("admin/", admin.site.urls),
-
     # API Routes
     path("api/auth/", include("apps.users.auth_urls")),
     path("api/social/", include("apps.users.social_urls")),
