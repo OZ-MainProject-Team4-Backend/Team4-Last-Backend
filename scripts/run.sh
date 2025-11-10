@@ -1,14 +1,13 @@
 #!/bin/bash
+export DJANGO_SETTINGS_MODULE=settings.base
 set -e
 
-# Wait for Postgres to be ready
 until nc -z last-AWS-db 5432; do
   echo "Waiting for Postgres..."
   sleep 1
 done
 echo "Postgres is up!"
 
-# Wait for Redis to be ready (assuming default port 6379)
 until nc -z redis 6379; do
   echo "Waiting for Redis..."
   sleep 1

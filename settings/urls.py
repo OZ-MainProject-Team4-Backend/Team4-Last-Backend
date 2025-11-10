@@ -18,6 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
+from rest_framework import permissions
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -25,24 +26,35 @@ from drf_spectacular.views import (
 )
 
 urlpatterns = [
-    # Root redirect to Swagger UI
     path('', RedirectView.as_view(url='/api/schema/swagger-ui/', permanent=False)),
-    # API Schema
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    # Swagger UI
+
+    path(
+        "api/schema/",
+        SpectacularAPIView.as_view(permission_classes=[permissions.AllowAny]),
+        name="schema",
+    ),
+
     path(
         "api/schema/swagger-ui/",
-        SpectacularSwaggerView.as_view(url_name="schema"),
+        SpectacularSwaggerView.as_view(
+            url_name="schema",
+            permission_classes=[permissions.AllowAny],
+        ),
         name="swagger-ui",
     ),
-    # Redoc UI
+
     path(
         "api/schema/redoc/",
-        SpectacularRedocView.as_view(url_name="schema"),
+        SpectacularRedocView.as_view(
+            url_name="schema",
+            permission_classes=[permissions.AllowAny],
+        ),
         name="redoc",
     ),
+
     # Admin
     path("admin/", admin.site.urls),
+
     # API Routes
     path("api/auth/", include("apps.users.auth_urls")),
     path("api/social/", include("apps.users.social_urls")),

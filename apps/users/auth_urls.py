@@ -27,7 +27,7 @@ urlpatterns = [
     path('signup', SignUpView.as_view(), name='signup'),
     path('login', LoginView.as_view(), name='login'),
     path('logout', LogoutView.as_view(), name='logout'),
-    path('refresh', RefreshTokenView.as_view(), name='refresh'),  # ← 추가
+    path('refresh', RefreshTokenView.as_view(), name='refresh'),
     # 사용자 관련
     path('me', MyPageView.as_view(), name='me'),
     path('profile', ProfileUpdateView.as_view(), name='profile-update'),
