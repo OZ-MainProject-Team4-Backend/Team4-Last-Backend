@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.weather.serializers import ForecastQuerySerializer
+from apps.weather.serializers import WeatherDataSerializer
 
 from .models import Diary
 
@@ -12,7 +12,7 @@ class DiaryListSerializer(serializers.ModelSerializer):  # 목록조회
 
 
 class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
-    weather = ForecastQuerySerializer(source="weather_data", read_only=True)
+    weather = WeatherDataSerializer(source="weather_data", read_only=True)
 
     class Meta:
         model = Diary
