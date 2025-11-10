@@ -204,6 +204,8 @@ SOCIAL_PROVIDERS = {
         "token_url": "https://kauth.kakao.com/oauth/token",
         "user_info_url": "https://kapi.kakao.com/v2/user/me",
         "redirect_uri": os.environ.get("KAKAO_REDIRECT_URI"),
+        "api_url": "https://kapi.kakao.com/v2/user/me",
+        "timeout": 5,
     },
     "naver": {
         "name": "네이버",
@@ -213,6 +215,8 @@ SOCIAL_PROVIDERS = {
         "token_url": "https://nid.naver.com/oauth2.0/token",
         "user_info_url": "https://openapi.naver.com/v1/nid/me",
         "redirect_uri": os.environ.get("NAVER_REDIRECT_URI"),
+        "api_url": "https://openapi.naver.com/v1/nid/me",
+        "timeout": 5,
     },
     "google": {
         "name": "구글",
@@ -223,6 +227,8 @@ SOCIAL_PROVIDERS = {
         "user_info_url": "https://www.googleapis.com/oauth2/v2/userinfo",
         "scope": "openid email profile",
         "redirect_uri": os.environ.get("GOOGLE_REDIRECT_URI"),
+        "api_url": "https://www.googleapis.com/oauth2/v2/userinfo",
+        "timeout": 5,
     },
 }
 
