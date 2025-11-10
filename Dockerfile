@@ -9,7 +9,7 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PATH="/root/.local/bin:/root/.cargo/bin:${PATH}"
-ENV DJANGO_SETTINGS_MODULE=settings.production
+ENV DJANGO_SETTINGS_MODULE=settings.base
 
 # ----------------------------
 # 3. 필수 패키지 설치

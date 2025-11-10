@@ -40,9 +40,9 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", default=None)
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = ['*']
 
+SECURE_COOKIES = True
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -173,14 +173,26 @@ REST_FRAMEWORK = {
 
 # ==================== Swagger/Spectacular 설정 ====================
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Your Project API',
-    'DESCRIPTION': 'API documentation',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
+    "TITLE": "Your Project API",
+    "DESCRIPTION": "API documentation",
+    "VERSION": "1.0.0",
+    "COMPONENTS": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            },
+        },
+    },
+    "SECURITY": [{"BearerAuth": []}],
+    # 기타 스웨거 옵션
+    "SERVE_INCLUDE_SCHEMA": True,
     "SCHEMA_PATH_PREFIX": "/api",
-    'SWAGGER_UI_SETTINGS': {
-        'persistAuthorization': True,
-        'displayOperationId': False,
+    "SWAGGER_UI_SETTINGS": {
+        "persistAuthorization": True,
+        "displayOperationId": False,
+        "deepLinking": True,
     },
 }
 
