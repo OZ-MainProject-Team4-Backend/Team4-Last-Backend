@@ -44,4 +44,4 @@ class Diary(SoftDeleteModel):
         verbose_name_plural = 'Diaries'
 
     def __str__(self):
-        return f"{self.user.username if self.user else 'Unknown'} - {self.date} - {self.title}"
+        return f"{self.user.nickname if self.user else 'Unknown'} - {self.date} - {self.title}"
