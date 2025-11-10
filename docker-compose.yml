@@ -25,7 +25,6 @@ services:
       - redis
     volumes:
       - .:/last-AWS
-    command: gunicorn settings.wsgi:application --bind 0.0.0.0:8000 --timeout 120 --workers 2
 
   redis:
     image: redis:7
