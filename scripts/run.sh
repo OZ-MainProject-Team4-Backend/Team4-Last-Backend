@@ -6,5 +6,5 @@ python manage.py makemigrations --check --noinput || echo "No changes"
 python manage.py migrate
 
 # Gunicorn 실행
-gunicorn apps.wsgi:application --bind 0.0.0.0:8000 --workers 2
+gunicorn settings.wsgi:application --bind 0.0.0.0:8000 --workers 2 --preload --log-level debug
 
