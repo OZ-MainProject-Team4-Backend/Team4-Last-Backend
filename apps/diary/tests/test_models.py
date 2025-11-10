@@ -1,10 +1,12 @@
+from datetime import date as date_obj
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.utils import timezone
-from django.core.files.uploadedfile import SimpleUploadedFile
+
+from apps.diary.models import Diary
 from apps.users.models import User
 from apps.weather.models import WeatherData, WeatherLocation
-from apps.diary.models import Diary 
-from datetime import date as date_obj
 
 
 class DiaryModelTest(TestCase):
@@ -49,19 +51,21 @@ class DiaryModelTest(TestCase):
         self.test_image = SimpleUploadedFile(
             name="test_image.jpg",
             content=self.test_image_content,
-            content_type="image/jpeg"
+            content_type="image/jpeg",
         )
 
     def test_create_diary_with_image_and_weather(self):
         """이미지 및 날씨 정보가 포함된 일기 생성 테스트"""
         diary = Diary.objects.create(
             user=self.user,
-            date=date_obj(2025, 1, 1), # datetime.date 객체 사용
+            date=date_obj(2025, 1, 1),  # datetime.date 객체 사용
             title="테스트 일기",
             emotion=0,
             notes="오늘은 테스트를 했어요.",
             image=SimpleUploadedFile(
-                name="test_image.jpg", content=self.test_image_content, content_type="image/jpeg"
+                name="test_image.jpg",
+                content=self.test_image_content,
+                content_type="image/jpeg",
             ),
             weather_data=self.weather,
         )
@@ -89,7 +93,7 @@ class DiaryModelTest(TestCase):
             title="첫 번째 일기",
         )
         # 같은 user, 같은 date로 생성 시 예외 발생 확인
-        with self.assertRaises(Exception): 
+        with self.assertRaises(Exception):
             Diary.objects.create(
                 user=self.user,
                 date=date_obj(2025, 1, 3),
