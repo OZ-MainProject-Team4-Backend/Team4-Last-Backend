@@ -1,16 +1,10 @@
-# apps/diary/tests/test_models.py
-
-from datetime import date as date_obj
-
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.utils import timezone
-
-from apps.diary.models import Diary
-
-# 모델 경로에 맞게 수정
+from django.core.files.uploadedfile import SimpleUploadedFile
 from apps.users.models import User
 from apps.weather.models import WeatherData, WeatherLocation
+from apps.diary.models import Diary 
+from datetime import date as date_obj
 
 
 class DiaryModelTest(TestCase):
@@ -40,7 +34,6 @@ class DiaryModelTest(TestCase):
             base_time=timezone.now(),
             valid_time=timezone.now(),
             temperature=18.5,
-            # 아래 필드들에 테스트용 더미 값을 추가하여 IntegrityError 해결
             feels_like=17.0,
             humidity=50,
             rain_probability=0,
@@ -56,22 +49,19 @@ class DiaryModelTest(TestCase):
         self.test_image = SimpleUploadedFile(
             name="test_image.jpg",
             content=self.test_image_content,
-            content_type="image/jpeg",
+            content_type="image/jpeg"
         )
-        # 파일을 다시 로드할 필요가 없도록 객체만 저장
 
     def test_create_diary_with_image_and_weather(self):
         """이미지 및 날씨 정보가 포함된 일기 생성 테스트"""
         diary = Diary.objects.create(
             user=self.user,
-            date=date_obj(2025, 1, 1),  # datetime.date 객체 사용
+            date=date_obj(2025, 1, 1), # datetime.date 객체 사용
             title="테스트 일기",
             emotion=0,
             notes="오늘은 테스트를 했어요.",
             image=SimpleUploadedFile(
-                name="test_image.jpg",
-                content=self.test_image_content,
-                content_type="image/jpeg",
+                name="test_image.jpg", content=self.test_image_content, content_type="image/jpeg"
             ),
             weather_data=self.weather,
         )
@@ -99,7 +89,7 @@ class DiaryModelTest(TestCase):
             title="첫 번째 일기",
         )
         # 같은 user, 같은 date로 생성 시 예외 발생 확인
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception): 
             Diary.objects.create(
                 user=self.user,
                 date=date_obj(2025, 1, 3),
