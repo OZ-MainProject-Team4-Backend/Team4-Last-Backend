@@ -7,23 +7,18 @@ CACHES = {
 
 
 # ==================== 보안 설정 ====================
-# 시크릿키
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 
-# 운영환경이니까 디버그 끔
 DEBUG = False
 
-# 실제 서비스 도메인 + 로컬 테스트용 도메인 포함
 ALLOWED_HOSTS = env.list(
     'DJANGO_ALLOWED_HOSTS', default=['.p-e.kr', 'localhost', '127.0.0.1']
 )
 
-# HTTPS 설정
 SESSION_COOKIE_SECURE = True
 
 
 # ==================== 소셜 로그인 설정 ====================
-# 운영 환경용 소셜 로그인 리다이렉트 URI
 SOCIAL_PROVIDERS["kakao"]["redirect_uri"] = env('KAKAO_REDIRECT_URI')
 SOCIAL_PROVIDERS["naver"]["redirect_uri"] = env('NAVER_REDIRECT_URI')
 SOCIAL_PROVIDERS["google"]["redirect_uri"] = env('GOOGLE_REDIRECT_URI')
@@ -36,7 +31,6 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 # ==================== CORS 설정 ====================
-# 프론트엔드 도메인만 허용
 CORS_ALLOWED_ORIGINS = env.list(
     'CORS_ALLOWED_ORIGINS',
     default=[
@@ -46,7 +40,6 @@ CORS_ALLOWED_ORIGINS = env.list(
 
 
 # ==================== JWT 설정 ====================
-# 운영 환경에서는 HTTPS 필수
 from datetime import timedelta
 
 SIMPLE_JWT = {
@@ -61,13 +54,14 @@ SIMPLE_JWT = {
 
 
 # ==================== 보안 헤더 설정 ====================
-# HSTS (HTTP Strict-Transport-Security)
-SECURE_HSTS_SECONDS = 31536000  # 1년
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+# 로컬 테스트: False, 배포: True로 변경
+SECURE_SSL_REDIRECT = False
 
-# 기타 보안 설정
-SECURE_SSL_REDIRECT = True
+# DEBUG 상태에 따라 HSTS 설정
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
+
 X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_SECURITY_POLICY = {
     "default-src": ("'self'",),
