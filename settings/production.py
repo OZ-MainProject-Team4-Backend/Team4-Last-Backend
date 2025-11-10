@@ -75,6 +75,12 @@ SECURE_CONTENT_SECURITY_POLICY = {
 
 
 # ==================== Logging 설정 ====================
+import os
+
+LOGGING_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOGGING_DIR):
+    os.makedirs(LOGGING_DIR)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -88,7 +94,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/django/app.log',
+            'filename': os.path.join(LOGGING_DIR, 'app.log'),
             'maxBytes': 1024 * 1024 * 10,  # 10MB
             'backupCount': 10,
             'formatter': 'verbose',
