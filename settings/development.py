@@ -23,9 +23,15 @@ ALLOWED_HOSTS = ["*"]  # 개발 환경에서는 모든 호스트를 허용
 
 # ==================== 소셜 로그인 설정 ====================
 # 개발 환경용 소셜 로그인 리다이렉트 URI
-SOCIAL_PROVIDERS["kakao"]["redirect_uri"] = "http://localhost:8000/api/auth/social/kakao/callback"
-SOCIAL_PROVIDERS["naver"]["redirect_uri"] = "http://localhost:8000/api/auth/social/naver/callback"
-SOCIAL_PROVIDERS["google"]["redirect_uri"] = "http://localhost:8000/api/auth/social/google/callback"
+SOCIAL_PROVIDERS["kakao"][
+    "redirect_uri"
+] = "http://localhost:8000/api/auth/social/kakao/callback"
+SOCIAL_PROVIDERS["naver"][
+    "redirect_uri"
+] = "http://localhost:8000/api/auth/social/naver/callback"
+SOCIAL_PROVIDERS["google"][
+    "redirect_uri"
+] = "http://localhost:8000/api/auth/social/google/callback"
 
 
 # ==================== 이메일 설정 ====================
