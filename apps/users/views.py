@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 
 import requests
 from django.conf import settings
-from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils import timezone
@@ -55,18 +55,20 @@ def success_response(
     message: str, data=None, status_code=200, http_status=status.HTTP_200_OK
 ):
     return Response(
-        {
-            "success": True,
-            "statusCode": status_code,
-            "message": message,
-            "data": data,
-        }
-        if data
-        else {
-            "success": True,
-            "statusCode": status_code,
-            "message": message,
-        },
+        (
+            {
+                "success": True,
+                "statusCode": status_code,
+                "message": message,
+                "data": data,
+            }
+            if data
+            else {
+                "success": True,
+                "statusCode": status_code,
+                "message": message,
+            }
+        ),
         status=http_status,
     )
 
@@ -144,9 +146,9 @@ def get_user_data(user):
         "gender": getattr(user, "gender", None),
         "age_group": getattr(user, "age_group", None),
         "is_verified": user.email_verified,
-        "created_at": user.created_at.isoformat()
-        if hasattr(user, "created_at")
-        else None,
+        "created_at": (
+            user.created_at.isoformat() if hasattr(user, "created_at") else None
+        ),
     }
 
 

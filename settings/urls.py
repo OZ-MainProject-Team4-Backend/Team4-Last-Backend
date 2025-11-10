@@ -27,27 +27,22 @@ from drf_spectacular.views import (
 urlpatterns = [
     # Root redirect to Swagger UI
     path('', RedirectView.as_view(url='/api/schema/swagger-ui/', permanent=False)),
-
     # API Schema
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-
     # Swagger UI
     path(
         "api/schema/swagger-ui/",
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
-
     # Redoc UI
     path(
         "api/schema/redoc/",
         SpectacularRedocView.as_view(url_name="schema"),
         name="redoc",
     ),
-
     # Admin
     path("admin/", admin.site.urls),
-
     # API Routes
     path("api/auth/", include("apps.users.auth_urls")),
     path("api/social/", include("apps.users.social_urls")),

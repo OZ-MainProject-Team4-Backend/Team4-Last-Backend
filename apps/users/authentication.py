@@ -27,7 +27,9 @@ class CustomJWTAuthentication(JWTAuthentication):
                 cache.set(cache_key, False, timeout=3600)  # 1시간 캐시
             except Token.DoesNotExist:
                 cache.set(cache_key, True, timeout=3600)
-                raise AuthenticationFailed("로그아웃한 토큰이거나 유효하지 않은 토큰입니다")
+                raise AuthenticationFailed(
+                    "로그아웃한 토큰이거나 유효하지 않은 토큰입니다"
+                )
         elif is_revoked:
             raise AuthenticationFailed("로그아웃한 토큰이거나 유효하지 않은 토큰입니다")
 
