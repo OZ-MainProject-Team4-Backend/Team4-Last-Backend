@@ -1,5 +1,6 @@
-from django.test import TestCase
 from unittest.mock import patch
+
+from django.test import TestCase
 
 from apps.recommend.services.recommend_service import generate_outfit_recommend
 
