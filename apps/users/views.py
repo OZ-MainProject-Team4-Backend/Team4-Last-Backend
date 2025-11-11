@@ -49,7 +49,7 @@ EMAIL_VERIF_MAX_PER_HOUR = 5
 
 # ============ Helpers ============
 def success_response(
-        message: str, data=None, status_code=200, http_status=status.HTTP_200_OK
+    message: str, data=None, status_code=200, http_status=status.HTTP_200_OK
 ):
     return Response(
         (
@@ -71,7 +71,7 @@ def success_response(
 
 
 def error_response(
-        code: str, message: str, http_status=status.HTTP_400_BAD_REQUEST, status_code=None
+    code: str, message: str, http_status=status.HTTP_400_BAD_REQUEST, status_code=None
 ):
     status_code_map = {
         status.HTTP_400_BAD_REQUEST: 400,
@@ -157,7 +157,7 @@ def set_refresh_token_cookie(response, refresh_token):
         httponly=True,
         secure=getattr(settings, 'SECURE_COOKIES', True),  # HTTPS 환경에서만 전송
         samesite='Lax',
-        max_age=7*24*60*60  # 7일
+        max_age=7 * 24 * 60 * 60,  # 7일
     )
 
 
@@ -172,7 +172,7 @@ class NicknameValidateView(APIView):
         nickname = serializer.validated_data["nickname"].strip()
 
         if User.objects.filter(
-                nickname__iexact=nickname, deleted_at__isnull=True
+            nickname__iexact=nickname, deleted_at__isnull=True
         ).exists():
             return error_response(
                 "nickname_already_in_use",
@@ -194,7 +194,7 @@ class EmailSendView(APIView):
         email = serializer.validated_data["email"].strip().lower()
 
         if User.objects.filter(
-                email__iexact=email, email_verified=True, deleted_at__isnull=True
+            email__iexact=email, email_verified=True, deleted_at__isnull=True
         ).exists():
             return error_response(
                 "email_already_verified",
@@ -279,10 +279,10 @@ class SignUpView(APIView):
 
         nickname = serializer.validated_data.get("nickname")
         if (
-                nickname
-                and User.objects.filter(
-            nickname__iexact=nickname, deleted_at__isnull=True
-        ).exists()
+            nickname
+            and User.objects.filter(
+                nickname__iexact=nickname, deleted_at__isnull=True
+            ).exists()
         ):
             return error_response(
                 "nickname_duplicate", "닉네임 중복", status.HTTP_400_BAD_REQUEST
@@ -389,9 +389,7 @@ class RefreshTokenView(APIView):
             token.save(update_fields=["refresh_jwt", "refresh_expires_at"])
 
             response = success_response(
-                "토큰 갱신 완료",
-                data={"access": new_access_token},
-                status_code=200
+                "토큰 갱신 완료", data={"access": new_access_token}, status_code=200
             )
 
             # 새로운 refresh token을 쿠키로 설정
@@ -654,7 +652,6 @@ class SocialCallbackView(APIView):
 
             access, refresh = create_jwt_token(user)
             logger.info(f"Social callback success: {provider} - {user.email}")
-
             response = redirect(
                 f"http://localhost:3000/login/success?access={access}"
             )
