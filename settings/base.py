@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 ENV_FILE = os.environ.get("ENV_FILE", "env/.env")
 load_dotenv(dotenv_path=ENV_FILE)
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -59,6 +60,7 @@ INSTALLED_APPS = [
     "apps.weather",
     'apps.core',
     'apps.diary',
+    'apps.chat',
 ]
 
 MIDDLEWARE = [
