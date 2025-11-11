@@ -204,19 +204,41 @@ class SignupSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+    isAutoLogin = serializers.BooleanField(required=False, default=False)
 
     def validate(self, data):
         email = data.get("email")
         password = data.get("password")
         user = authenticate(email=email, password=password)
+
+        # 1. 인증 실패
         if user is None:
             raise serializers.ValidationError(
                 "로그인 실패: 이메일 또는 비밀번호가 올바르지 않습니다."
             )
+
+        # 2. 계정 비활성화 확인
         if not getattr(user, "is_active", True):
             raise serializers.ValidationError("비활성화된 계정입니다.")
+
+        # 3. 이메일 검증 여부 확인
+        if not getattr(user, "email_verified", False):
+            raise serializers.ValidationError("이메일 인증이 필요합니다.")
+
+        # 4. 탈퇴 계정 확인
+        if getattr(user, "deleted_at", None):
+            raise serializers.ValidationError("탈퇴한 계정입니다.")
+
+        # 검증 통과
         data["user"] = user
+        data["isAutoLogin"] = bool(data.get("isAutoLogin", False))
         return data
+
+
+class LoginResponseSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    access_expires_at = serializers.DateTimeField()
+    is_auto_login = serializers.BooleanField()
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

@@ -156,4 +156,4 @@ class Token(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.email} - {self.created_at}"
+        return f"{self.user.email} - revoked={self.revoked}"
