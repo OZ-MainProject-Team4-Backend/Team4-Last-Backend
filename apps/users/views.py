@@ -13,6 +13,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import permissions
 
 from .models import SocialAccount, Token
 from .serializers import (
@@ -29,8 +30,10 @@ from .serializers import (
     SocialUnlinkSerializer,
     UserDeleteSerializer,
     UserProfileSerializer,
+    LoginResponseSerializer,
 )
 from .services.social_auth_service import SocialAuthService
+from .services.token_service import create_jwt_pair_for_user, revoke_token
 from .utils.send_email import send_verification_email
 from .utils.social_auth import (
     SocialTokenInvalidError,
@@ -306,63 +309,66 @@ class LoginView(APIView):
     serializer_class = LoginSerializer
 
     def post(self, request):
+        # 요청 검증
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         user = serializer.validated_data["user"]
+        is_auto_login = serializer.validated_data["isAutoLogin"]
 
-        if not getattr(user, "email_verified", False):
-            return error_response(
-                "email_not_verified", "이메일 인증 필요", status.HTTP_401_UNAUTHORIZED
-            )
+        # 토큰 생성
+        tokens = create_jwt_pair_for_user(user, is_auto_login)
 
-        if not getattr(user, "is_active", True) or getattr(user, "deleted_at", None):
-            return error_response(
-                "account_inactive",
-                "비활성한 계정이거나 탈퇴 계정입니다",
-                status.HTTP_403_FORBIDDEN,
-            )
+        # 응답 직렬화
+        response_data = {
+            "access": tokens["access"],
+            "access_expires_at": tokens["access_expires_at"],
+            "is_auto_login": is_auto_login,
+        }
+        response_serializer = LoginResponseSerializer(response_data)
 
-        access, refresh = create_jwt_token(user)
-
+        # 응답 생성
         response = success_response(
             "로그인 성공",
-            data={"user": get_user_data(user), "access": access},
+            data=response_serializer.data,
             status_code=200,
         )
 
-        # Refresh token을 HttpOnly 쿠키로 설정
-        set_refresh_token_cookie(response, refresh)
+        # 쿠키 설정
+        cookie_params = {
+            "key": "refresh",
+            "value": tokens["refresh"],
+            "httponly": True,
+            "samesite": "Strict",
+            "secure": True,
+        }
+        if is_auto_login:
+            cookie_params["max_age"] = 7 * 24 * 60 * 60
 
+        response.set_cookie(**cookie_params)
         return response
 
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        try:
-            token = Token.objects.get(user=request.user)
-            token.revoked = True
-            token.save(update_fields=["revoked"])
-
-            response = success_response("로그아웃 완료", status_code=200)
-            # Refresh token 쿠키 삭제
-            response.delete_cookie('refresh_token')
-
-            return response
-        except Token.DoesNotExist:
-            return error_response(
-                "token_not_found", "토큰을 찾을 수 없습니다", status.HTTP_404_NOT_FOUND
-            )
-
+def post(self, request):
+    try:
+        revoke_token(request.user)
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        response.delete_cookie("refresh")
+        return response
+    except Token.DoesNotExist:
+        return error_response(...)
 
 class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
-    serializer_class = RefreshTokenSerializer
 
     def post(self, request):
-        refresh_token = request.data.get("refresh") or request.COOKIES.get(
-            'refresh_token'
+        # 1. Refresh 토큰 조회
+        refresh_token = (
+            request.data.get("refresh")
+            or request.COOKIES.get("refresh_token")
         )
 
         if not refresh_token:
@@ -373,31 +379,51 @@ class RefreshTokenView(APIView):
             )
 
         try:
+            # 2. JWT 디코딩
             refresh = RefreshToken(refresh_token)
             new_access_token = str(refresh.access_token)
             user_id = refresh.get("user_id")
 
+            # 3. DB 토큰 확인 (revoked 여부)
             token = Token.objects.get(user_id=user_id, revoked=False)
+
+            # 4. Access token 갱신 (15분)
             token.access_jwt = new_access_token
             token.access_expires_at = timezone.now() + timedelta(minutes=15)
-            token.save(update_fields=["access_jwt", "access_expires_at"])
 
-            # 새로운 refresh token 생성 (선택사항: Refresh Token Rotation)
+            # 5. Refresh token 회전 (새로 생성 - 7일)
             new_refresh = RefreshToken.for_user_id(user_id)
-            new_refresh_token = str(new_refresh)
-
-            token.refresh_jwt = new_refresh_token
+            token.refresh_jwt = str(new_refresh)
             token.refresh_expires_at = timezone.now() + timedelta(days=7)
-            token.save(update_fields=["refresh_jwt", "refresh_expires_at"])
 
+            token.save(update_fields=[
+                "access_jwt",
+                "access_expires_at",
+                "refresh_jwt",
+                "refresh_expires_at"
+            ])
+
+            # 6. 응답 생성
             response = success_response(
-                "토큰 갱신 완료", data={"access": new_access_token}, status_code=200
+                "토큰 갱신 완료",
+                data={
+                    "access": new_access_token,
+                    "access_expires_at": token.access_expires_at,
+                },
+                status_code=200,
             )
 
-            # 새로운 refresh token을 쿠키로 설정
-            set_refresh_token_cookie(response, new_refresh_token)
+            # 7. 새 Refresh token 쿠키 저장
+            set_refresh_token_cookie(response, str(new_refresh))
 
             return response
+
+        except Token.DoesNotExist:
+            return error_response(
+                "token_not_found",
+                "토큰 정보를 찾을 수 없습니다",
+                status.HTTP_401_UNAUTHORIZED,
+            )
         except Exception as e:
             logger.error(f"Token refresh error: {str(e)}")
             return error_response(

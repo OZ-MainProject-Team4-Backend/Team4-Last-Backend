@@ -9,19 +9,16 @@ logger = logging.getLogger(__name__)
 
 class SocialAuthError(Exception):
     """소셜 인증 에러"""
-
     pass
 
 
 class SocialProviderNotFoundError(SocialAuthError):
     """지원하지 않는 소셜 프로바이더"""
-
     pass
 
 
 class SocialTokenInvalidError(SocialAuthError):
     """유효하지 않은 소셜 토큰"""
-
     pass
 
 
@@ -39,7 +36,7 @@ def verify_kakao_token(access_token: str) -> Dict:
         response = requests.get(
             config["api_url"],
             headers={"Authorization": f"Bearer {access_token}"},
-            timeout=config["timeout"],
+            timeout=config.get("timeout", 5),
         )
 
         if response.status_code != 200:
@@ -67,7 +64,7 @@ def verify_naver_token(access_token: str) -> Dict:
         response = requests.get(
             config["api_url"],
             headers={"Authorization": f"Bearer {access_token}"},
-            timeout=config["timeout"],
+            timeout=config.get("timeout", 5),
         )
 
         if response.status_code != 200:
@@ -98,7 +95,7 @@ def verify_google_token(access_token: str) -> Dict:
         response = requests.get(
             config["api_url"],
             headers={"Authorization": f"Bearer {access_token}"},
-            timeout=config["timeout"],
+            timeout=config.get("timeout", 5),
         )
 
         if response.status_code != 200:
@@ -107,13 +104,13 @@ def verify_google_token(access_token: str) -> Dict:
 
         data = response.json()
         return {
-            "provier_user_id": data.get("id"),
+            "provider_user_id": data.get("id"),  # ← 수정: "provier_user_id" → "provider_user_id"
             "email": data.get("email"),
             "nickname": data.get("name"),
         }
 
     except requests.RequestException as e:
-        logger.error(f"Google API request failed: {str(e)}")
+        logger.error(f"google API request failed: {str(e)}")
         raise SocialTokenInvalidError("구글 API 호출 실패")
 
 
