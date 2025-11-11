@@ -36,8 +36,11 @@ class CustomJWTAuthentication(JWTAuthentication):
 
         return user, validated_token
 
+
 class CustomJWTAuthenticationScheme(OpenApiAuthenticationExtension):
-    target_class = 'apps.users.authentication.CustomJWTAuthentication'  # 앱 이름 수정 필요
+    target_class = (
+        'apps.users.authentication.CustomJWTAuthentication'  # 앱 이름 수정 필요
+    )
     name = 'BearerAuth'
 
     def get_security_definition(self, auto_schema):
