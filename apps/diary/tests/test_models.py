@@ -17,8 +17,8 @@ class DiaryModelTest(TestCase):
             password="testpass123",
             name="테스트 이름",
             nickname="테스트닉",
-            gender="F",
-            age_group="20s",
+            gender="women",
+            age_group="20",
         )
 
         # WeatherLocation 생성
@@ -58,44 +58,65 @@ class DiaryModelTest(TestCase):
         """이미지 및 날씨 정보가 포함된 일기 생성 테스트"""
         diary = Diary.objects.create(
             user=self.user,
-            date=date_obj(2025, 1, 1),  # datetime.date 객체 사용
+            date=date_obj(2025, 1, 1),
             title="테스트 일기",
-            emotion=0,
+            emotion="sad",
             notes="오늘은 테스트를 했어요.",
             image=SimpleUploadedFile(
                 name="test_image.jpg",
                 content=self.test_image_content,
                 content_type="image/jpeg",
             ),
-            weather_data=self.weather,
+            weather_data=self.weather,  # None이 아닌 실제 객체 전달
         )
         self.assertEqual(Diary.objects.count(), 1)
         self.assertEqual(diary.user.email, "test@example.com")
         self.assertEqual(diary.weather_data.condition, "Cloudy")
         self.assertIsNotNone(diary.image)
 
+    def test_create_diary_without_weather(self):
+        """날씨 정보 없이 일기 생성 테스트"""
+        diary = Diary.objects.create(
+            user=self.user,
+            date=date_obj(2025, 1, 2),
+            title="날씨 없는 일기",
+            emotion="happy",
+            notes="오늘 날씨는 없어요.",
+            weather_data=None,  # 반드시 None으로
+        )
+        self.assertEqual(Diary.objects.count(), 1)
+        self.assertIsNone(diary.weather_data)
+
     def test_str_representation(self):
         """__str__ 메서드 문자열 표현 테스트"""
         diary = Diary.objects.create(
             user=self.user,
-            date=date_obj(2025, 1, 2),
+            date=date_obj(2025, 1, 3),
             title="문자열 표현 테스트",
+            weather_data=None,
+            emotion="angry",
+            notes="",
         )
-        # 💡 실패 로그를 기반으로 nickname을 사용하도록 예상 결과 수정
-        expected_str = f"{self.user.nickname} - {diary.date} - {diary.title}"
+        expected_str = f"{diary.date} - {diary.title}"
         self.assertEqual(str(diary), expected_str)
 
     def test_unique_together_constraint(self):
         """user와 date 조합의 유니크 제약 조건 테스트"""
         Diary.objects.create(
             user=self.user,
-            date=date_obj(2025, 1, 3),
+            date=date_obj(2025, 1, 4),
             title="첫 번째 일기",
+            weather_data=None,
+            emotion="excited",
+            notes="",
         )
         # 같은 user, 같은 date로 생성 시 예외 발생 확인
         with self.assertRaises(Exception):
             Diary.objects.create(
                 user=self.user,
-                date=date_obj(2025, 1, 3),
+                date=date_obj(2025, 1, 4),
                 title="중복 일기",
+                weather_data=None,
+                emotion="sad",
+                notes="",
             )

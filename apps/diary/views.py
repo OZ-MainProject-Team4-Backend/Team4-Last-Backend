@@ -21,7 +21,7 @@ from .serializers import (
 class DiaryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]  #  multipart/form-data 지원
-    queryset = Diary.objects.filter(deleted_at__isnull=True)
+    queryset = Diary.objects.all()
 
     #  액션별 serializer 분기
     def get_serializer_class(self):
@@ -37,7 +37,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Diary.objects.filter(user=user, deleted_at__isnull=True)
+        queryset = Diary.objects.filter(user=user)
         year = self.request.query_params.get("year")
         month = self.request.query_params.get("month")
 
@@ -82,7 +82,6 @@ class DiaryViewSet(viewsets.ModelViewSet):
         #  4. Diary 저장 (날씨 자동 연결)
         serializer.save(user=user, weather_data=weather_data)
 
-    #  soft delete
     def perform_destroy(self, instance):
         instance.delete()
 
