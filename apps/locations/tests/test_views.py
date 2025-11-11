@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
-from rest_framework.test import APITestCase, APIClient
-
+from rest_framework.test import APIClient, APITestCase
 
 User = get_user_model()
+
 
 class FavoriteLocationViewTests(APITestCase):
     def setUp(self):
