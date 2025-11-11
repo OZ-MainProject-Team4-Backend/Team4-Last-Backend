@@ -143,6 +143,7 @@ class Token(models.Model):
     access_expires_at = models.DateTimeField()
     refresh_expires_at = models.DateTimeField()
     revoked = models.BooleanField(default=False, db_index=True)
+    is_auto_login = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
