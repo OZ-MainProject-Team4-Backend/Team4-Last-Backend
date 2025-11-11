@@ -174,26 +174,29 @@ REST_FRAMEWORK = {
 # ==================== Swagger/Spectacular 설정 ====================
 SPECTACULAR_SETTINGS = {
     "TITLE": "Your Project API",
-    "DESCRIPTION": "API documentation",
+    "DESCRIPTION": "Your project description",
     "VERSION": "1.0.0",
-    "COMPONENTS": {
+    "SERVE_INCLUDE_SCHEMA": False,
+    # Security 설정
+    "SECURITY": [{"bearerAuth": []}],
+    # Components 설정
+    "APPEND_COMPONENTS": {
         "securitySchemes": {
-            "BearerAuth": {
+            "bearerAuth": {
                 "type": "http",
                 "scheme": "bearer",
                 "bearerFormat": "JWT",
-            },
-        },
+                "description": 'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"',
+            }
+        }
     },
-    "SECURITY": [{"BearerAuth": []}],
-    # 기타 스웨거 옵션
-    "SERVE_INCLUDE_SCHEMA": True,
-    "SCHEMA_PATH_PREFIX": "/api",
+    # Swagger UI 설정
     "SWAGGER_UI_SETTINGS": {
-        "persistAuthorization": True,
-        "displayOperationId": False,
         "deepLinking": True,
+        "persistAuthorization": True,
+        "displayOperationId": True,
     },
+    "COMPONENT_SPLIT_REQUEST": True,
 }
 
 
