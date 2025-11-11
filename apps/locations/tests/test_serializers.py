@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
-from rest_framework.test import APITestCase
 from rest_framework.exceptions import ValidationError
+from rest_framework.test import APITestCase
 
 from apps.locations.models import FavoriteLocation
 from apps.locations.serializers import FavoriteLocationSerializer
