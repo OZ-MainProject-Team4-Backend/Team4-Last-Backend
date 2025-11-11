@@ -1,7 +1,6 @@
 # apps/users/auth_urls.py
 from django.urls import path
 
-from .views import RefreshTokenView
 from .views import (
     EmailChangeVerifyView,
     EmailSendView,
@@ -13,12 +12,13 @@ from .views import (
     NicknameValidateView,
     PasswordChangeView,
     ProfileUpdateView,
+    RefreshTokenView,
     SignUpView,
-    UserDeleteView,
-    SocialLoginView,
     SocialCallbackView,
     SocialLinkView,
+    SocialLoginView,
     SocialUnlinkView,
+    UserDeleteView,
 )
 
 app_name = 'users_auth'
@@ -32,7 +32,6 @@ urlpatterns = [
     path('login', LoginView.as_view(), name='login'),
     path('logout', LogoutView.as_view(), name='logout'),
     path('refresh', RefreshTokenView.as_view(), name='refresh'),
-
     # 사용자 관련
     path('me', MyPageView.as_view(), name='me'),
     path('profile', ProfileUpdateView.as_view(), name='profile-update'),

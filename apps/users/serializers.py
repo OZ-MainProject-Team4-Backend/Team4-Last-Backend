@@ -5,7 +5,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from .models import SocialAccount, User, Token
+from .models import SocialAccount, Token, User
 
 
 class NicknameValidateSerializer(serializers.Serializer):
@@ -331,6 +331,7 @@ class SocialLinkSerializer(serializers.Serializer):
 
 class SocialUnlinkSerializer(serializers.Serializer):
     pass
+
 
 class RefreshTokenSerializer(serializers.Serializer):
     refresh = serializers.CharField(required=False, allow_blank=True)

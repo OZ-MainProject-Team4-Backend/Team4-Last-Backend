@@ -22,13 +22,13 @@ from .serializers import (
     LoginSerializer,
     NicknameValidateSerializer,
     PasswordChangeSerializer,
+    RefreshTokenSerializer,
     SignupSerializer,
     SocialLinkSerializer,
     SocialLoginSerializer,
     SocialUnlinkSerializer,
     UserDeleteSerializer,
     UserProfileSerializer,
-    RefreshTokenSerializer,
 )
 from .services.social_auth_service import SocialAuthService
 from .utils.send_email import send_verification_email
@@ -361,7 +361,9 @@ class RefreshTokenView(APIView):
     serializer_class = RefreshTokenSerializer
 
     def post(self, request):
-        refresh_token = request.data.get("refresh") or request.COOKIES.get('refresh_token')
+        refresh_token = request.data.get("refresh") or request.COOKIES.get(
+            'refresh_token'
+        )
 
         if not refresh_token:
             return error_response(
@@ -652,9 +654,7 @@ class SocialCallbackView(APIView):
 
             access, refresh = create_jwt_token(user)
             logger.info(f"Social callback success: {provider} - {user.email}")
-            response = redirect(
-                f"http://localhost:3000/login/success?access={access}"
-            )
+            response = redirect(f"http://localhost:3000/login/success?access={access}")
             set_refresh_token_cookie(response, refresh)
 
             return response
