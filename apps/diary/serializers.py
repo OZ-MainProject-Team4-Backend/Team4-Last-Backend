@@ -44,8 +44,11 @@ class DiaryCreateSerializer(serializers.ModelSerializer):
         # weather_data 말고, lat, lon을 불러와서 자동으로 날씨 데이터를 조회해 연결하기 위해
 
     def create(self, validated_data):
-        user = validated_data.pop("user")   # user가 있으면 제거 (유저 2번 호출 방지/view에서 처리 x)
+        user = validated_data.pop(
+            "user"
+        )  # user가 있으면 제거 (유저 2번 호출 방지/view에서 처리 x)
         return Diary.objects.create(user=user, **validated_data)
+
 
 class DiaryUpdateSerializer(serializers.ModelSerializer):
     class Meta:
