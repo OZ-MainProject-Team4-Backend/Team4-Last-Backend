@@ -1,3 +1,4 @@
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
@@ -34,3 +35,14 @@ class CustomJWTAuthentication(JWTAuthentication):
             raise AuthenticationFailed("로그아웃한 토큰이거나 유효하지 않은 토큰입니다")
 
         return user, validated_token
+
+class CustomJWTAuthenticationScheme(OpenApiAuthenticationExtension):
+    target_class = 'apps.users.authentication.CustomJWTAuthentication'  # 앱 이름 수정 필요
+    name = 'BearerAuth'
+
+    def get_security_definition(self, auto_schema):
+        return {
+            'type': 'http',
+            'scheme': 'bearer',
+            'bearerFormat': 'JWT',
+        }
