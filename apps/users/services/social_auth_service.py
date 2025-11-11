@@ -17,7 +17,7 @@ class SocialAuthService:
     @staticmethod
     @transaction.atomic
     def get_or_create_user_from_social(
-            provider: str, social_user_info: Dict
+        provider: str, social_user_info: Dict
     ) -> "UserModel":
         provider_user_id = social_user_info["provider_user_id"]
         email = social_user_info.get("email")
@@ -40,9 +40,7 @@ class SocialAuthService:
             )
 
         # 3. 기존 이메일 사용자 확인
-        user = User.objects.filter(
-            email__iexact=email, deleted_at__isnull=True
-        ).first()
+        user = User.objects.filter(email__iexact=email, deleted_at__isnull=True).first()
 
         # 4. 신규 사용자 생성
         if not user:
@@ -64,23 +62,23 @@ class SocialAuthService:
     @staticmethod
     @transaction.atomic
     def link_social_account(
-            user: "UserModel", provider: str, social_user_info: Dict
+        user: "UserModel", provider: str, social_user_info: Dict
     ) -> SocialAccount:
         provider_user_id = social_user_info["provider_user_id"]
 
         # 1. 다른 계정에 이미 연결된 경우
         if (
-                SocialAccount.objects.filter(
-                    provider=provider, provider_user_id=provider_user_id
-                )
-                        .exclude(user=user)
-                        .exists()
+            SocialAccount.objects.filter(
+                provider=provider, provider_user_id=provider_user_id
+            )
+            .exclude(user=user)
+            .exists()
         ):
             raise ValueError("이미 다른 계정에 연결된 소셜 계정입니다.")
 
         # 2. 현재 사용자에 이미 연결된 경우
         if SocialAccount.objects.filter(
-                user=user, provider=provider, provider_user_id=provider_user_id
+            user=user, provider=provider, provider_user_id=provider_user_id
         ).exists():
             raise ValueError("이미 연결된 소셜 계정입니다.")
 
@@ -104,9 +102,7 @@ class SocialAuthService:
     def get_linked_providers(user: "UserModel") -> list[str]:
 
         return list(
-            SocialAccount.objects.filter(user=user).values_list(
-                "provider", flat=True
-            )
+            SocialAccount.objects.filter(user=user).values_list("provider", flat=True)
         )
 
     @staticmethod

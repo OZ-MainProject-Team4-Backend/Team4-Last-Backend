@@ -1,9 +1,11 @@
 import hashlib
+
+from django.core.cache import cache
+from django.utils import timezone
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from django.core.cache import cache
-from django.utils import timezone
+
 from .models import Token
 
 
@@ -30,7 +32,9 @@ class CustomJWTAuthentication(JWTAuthentication):
         cached = cache.get(cache_key)
         if cached is not None:
             if cached.get("revoked"):
-                raise AuthenticationFailed("로그아웃한 토큰이거나 유효하지 않은 토큰입니다")
+                raise AuthenticationFailed(
+                    "로그아웃한 토큰이거나 유효하지 않은 토큰입니다"
+                )
             return user, validated_token
 
         try:

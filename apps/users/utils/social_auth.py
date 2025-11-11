@@ -9,16 +9,19 @@ logger = logging.getLogger(__name__)
 
 class SocialAuthError(Exception):
     """소셜 인증 에러"""
+
     pass
 
 
 class SocialProviderNotFoundError(SocialAuthError):
     """지원하지 않는 소셜 프로바이더"""
+
     pass
 
 
 class SocialTokenInvalidError(SocialAuthError):
     """유효하지 않은 소셜 토큰"""
+
     pass
 
 
@@ -104,7 +107,9 @@ def verify_google_token(access_token: str) -> Dict:
 
         data = response.json()
         return {
-            "provider_user_id": data.get("id"),  # ← 수정: "provier_user_id" → "provider_user_id"
+            "provider_user_id": data.get(
+                "id"
+            ),  # ← 수정: "provier_user_id" → "provider_user_id"
             "email": data.get("email"),
             "nickname": data.get("name"),
         }

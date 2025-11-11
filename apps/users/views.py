@@ -8,18 +8,18 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils import timezone
-from rest_framework import status
+from rest_framework import permissions, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework import permissions
 
 from .models import SocialAccount, Token
 from .serializers import (
     EmailSendSerializer,
     EmailVerifySerializer,
     FavoriteRegionsSerializer,
+    LoginResponseSerializer,
     LoginSerializer,
     NicknameValidateSerializer,
     PasswordChangeSerializer,
@@ -30,7 +30,6 @@ from .serializers import (
     SocialUnlinkSerializer,
     UserDeleteSerializer,
     UserProfileSerializer,
-    LoginResponseSerializer,
 )
 from .services.social_auth_service import SocialAuthService
 from .services.token_service import create_jwt_pair_for_user, revoke_token
@@ -352,6 +351,7 @@ class LoginView(APIView):
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+
 def post(self, request):
     try:
         revoke_token(request.user)
@@ -361,14 +361,14 @@ def post(self, request):
     except Token.DoesNotExist:
         return error_response(...)
 
+
 class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
         # 1. Refresh 토큰 조회
-        refresh_token = (
-            request.data.get("refresh")
-            or request.COOKIES.get("refresh_token")
+        refresh_token = request.data.get("refresh") or request.COOKIES.get(
+            "refresh_token"
         )
 
         if not refresh_token:
@@ -396,12 +396,14 @@ class RefreshTokenView(APIView):
             token.refresh_jwt = str(new_refresh)
             token.refresh_expires_at = timezone.now() + timedelta(days=7)
 
-            token.save(update_fields=[
-                "access_jwt",
-                "access_expires_at",
-                "refresh_jwt",
-                "refresh_expires_at"
-            ])
+            token.save(
+                update_fields=[
+                    "access_jwt",
+                    "access_expires_at",
+                    "refresh_jwt",
+                    "refresh_expires_at",
+                ]
+            )
 
             # 6. 응답 생성
             response = success_response(

@@ -200,6 +200,7 @@ class SignupSerializer(serializers.ModelSerializer):
                 user.save()
                 return user
 
+
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -233,10 +234,12 @@ class LoginSerializer(serializers.Serializer):
         data["isAutoLogin"] = bool(data.get("isAutoLogin", False))
         return data
 
+
 class LoginResponseSerializer(serializers.Serializer):
     access = serializers.CharField()
     access_expires_at = serializers.DateTimeField()
     is_auto_login = serializers.BooleanField()
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
