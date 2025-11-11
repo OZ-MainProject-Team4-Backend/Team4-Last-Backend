@@ -35,8 +35,8 @@ class DiarySerializerTest(TestCase):
             password="testpass123",
             name="테스트이름",
             nickname="테스트닉",
-            gender="F",
-            age_group="20s",
+            gender="여성",
+            age_group="20",
         )
 
         # 날씨 위치 및 데이터 생성
@@ -68,7 +68,7 @@ class DiarySerializerTest(TestCase):
             user=self.user,
             date=date_obj(2025, 1, 1),
             title="테스트 일기",
-            emotion=0,
+            emotion="happy",
             notes="테스트 내용",
             weather_data=self.weather,
         )
@@ -89,7 +89,7 @@ class DiarySerializerTest(TestCase):
     def test_detail_serializer(self):
         serializer = DiaryDetailSerializer(instance=self.diary)
         data = serializer.data
-        self.assertEqual(data["emotion"], 0)
+        self.assertEqual(data["emotion"], "happy")
         self.assertEqual(data["weather"]["condition"], "Cloudy")
         self.assertIn("created_at", data)
         self.assertIn("updated_at", data)
@@ -100,7 +100,7 @@ class DiarySerializerTest(TestCase):
         data = {
             "date": "2025-01-05",
             "title": "새로운 일기",
-            "emotion": 2,
+            "emotion": "happy",
             "notes": "테스트 작성",
             "lat": 37.5665,
             "lon": 126.9780,
@@ -113,7 +113,7 @@ class DiarySerializerTest(TestCase):
         data = {
             "date": "2025-01-05",
             "title": "위치 누락 테스트",
-            "emotion": 1,
+            "emotion": "happy",
             "notes": "위치가 없습니다",
         }
         serializer = DiaryCreateSerializer(data=data)
@@ -126,7 +126,7 @@ class DiarySerializerTest(TestCase):
         """업데이트용 serializer가 필드 검증을 정상 수행하는지 확인"""
         update_data = {
             "title": "수정된 제목",
-            "emotion": 3,
+            "emotion": "excited",
             "notes": "내용 변경됨",
             "image": self.test_image,
         }
@@ -134,5 +134,5 @@ class DiarySerializerTest(TestCase):
         self.assertTrue(serializer.is_valid(), serializer.errors)
         updated_diary = serializer.save()
         self.assertEqual(updated_diary.title, "수정된 제목")
-        self.assertEqual(updated_diary.emotion, 3)
+        self.assertEqual(updated_diary.emotion, "excited")
         self.assertIsNotNone(updated_diary.image)
