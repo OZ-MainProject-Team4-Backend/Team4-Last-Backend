@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'apps.core',
     'apps.diary',
     'apps.chat',
+    'storages',
 ]
 
 MIDDLEWARE = [
