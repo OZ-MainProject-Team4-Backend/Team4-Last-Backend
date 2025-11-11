@@ -80,7 +80,7 @@ class AiChatLogs(models.Model):
         null=True,
         blank=True,
     )
-    AiModelSettings = models.ForeignKey(
+    model_setting = models.ForeignKey(
         AiModelSettings,
         null=True,
         blank=True,
@@ -95,6 +95,7 @@ class AiChatLogs(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects: DjangoManager["AiChatLogs"] = models.Manager()
+    id: int
 
     class Meta:
         db_table = "ai_chat_logs"
