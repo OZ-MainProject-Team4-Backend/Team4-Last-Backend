@@ -28,6 +28,7 @@ from .serializers import (
     SocialUnlinkSerializer,
     UserDeleteSerializer,
     UserProfileSerializer,
+    RefreshTokenSerializer,
 )
 from .services.social_auth_service import SocialAuthService
 from .utils.send_email import send_verification_email
@@ -357,9 +358,9 @@ class LogoutView(APIView):
 
 class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = RefreshTokenSerializer
 
     def post(self, request):
-        # body 또는 cookie에서 refresh token 읽기
         refresh_token = request.data.get("refresh") or request.COOKIES.get('refresh_token')
 
         if not refresh_token:
@@ -654,7 +655,6 @@ class SocialCallbackView(APIView):
             access, refresh = create_jwt_token(user)
             logger.info(f"Social callback success: {provider} - {user.email}")
 
-            # Refresh token은 쿠키로 설정하고, Access token만 URL에 전달
             response = redirect(
                 f"http://localhost:3000/login/success?access={access}"
             )
