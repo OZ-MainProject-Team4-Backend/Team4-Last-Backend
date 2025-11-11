@@ -1,16 +1,13 @@
 import logging
 import random
-import secrets
 from datetime import timedelta
-from urllib.parse import urlencode
 
 import requests
 from django.conf import settings
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -25,6 +22,7 @@ from .serializers import (
     LoginSerializer,
     NicknameValidateSerializer,
     PasswordChangeSerializer,
+    RefreshTokenSerializer,
     SignupSerializer,
     SocialLinkSerializer,
     SocialLoginSerializer,
@@ -35,7 +33,6 @@ from .serializers import (
 from .services.social_auth_service import SocialAuthService
 from .utils.send_email import send_verification_email
 from .utils.social_auth import (
-    SocialProviderNotFoundError,
     SocialTokenInvalidError,
     verify_social_token,
 )
@@ -150,6 +147,18 @@ def get_user_data(user):
             user.created_at.isoformat() if hasattr(user, "created_at") else None
         ),
     }
+
+
+def set_refresh_token_cookie(response, refresh_token):
+    """Refresh Token을 HttpOnly 쿠키로 설정"""
+    response.set_cookie(
+        key='refresh_token',
+        value=refresh_token,
+        httponly=True,
+        secure=getattr(settings, 'SECURE_COOKIES', True),  # HTTPS 환경에서만 전송
+        samesite='Lax',
+        max_age=7 * 24 * 60 * 60,  # 7일
+    )
 
 
 # ============ Auth Views ============
@@ -314,11 +323,17 @@ class LoginView(APIView):
             )
 
         access, refresh = create_jwt_token(user)
-        return success_response(
+
+        response = success_response(
             "로그인 성공",
-            data={"user": get_user_data(user), "access": access, "refresh": refresh},
+            data={"user": get_user_data(user), "access": access},
             status_code=200,
         )
+
+        # Refresh token을 HttpOnly 쿠키로 설정
+        set_refresh_token_cookie(response, refresh)
+
+        return response
 
 
 class LogoutView(APIView):
@@ -329,7 +344,12 @@ class LogoutView(APIView):
             token = Token.objects.get(user=request.user)
             token.revoked = True
             token.save(update_fields=["revoked"])
-            return success_response("로그아웃 완료", status_code=200)
+
+            response = success_response("로그아웃 완료", status_code=200)
+            # Refresh token 쿠키 삭제
+            response.delete_cookie('refresh_token')
+
+            return response
         except Token.DoesNotExist:
             return error_response(
                 "token_not_found", "토큰을 찾을 수 없습니다", status.HTTP_404_NOT_FOUND
@@ -338,9 +358,13 @@ class LogoutView(APIView):
 
 class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = RefreshTokenSerializer
 
     def post(self, request):
-        refresh_token = request.data.get("refresh")
+        refresh_token = request.data.get("refresh") or request.COOKIES.get(
+            'refresh_token'
+        )
+
         if not refresh_token:
             return error_response(
                 "refresh_token_required",
@@ -350,15 +374,30 @@ class RefreshTokenView(APIView):
 
         try:
             refresh = RefreshToken(refresh_token)
-            access_token = str(refresh.access_token)
+            new_access_token = str(refresh.access_token)
             user_id = refresh.get("user_id")
+
             token = Token.objects.get(user_id=user_id, revoked=False)
-            token.access_jwt = access_token
+            token.access_jwt = new_access_token
             token.access_expires_at = timezone.now() + timedelta(minutes=15)
             token.save(update_fields=["access_jwt", "access_expires_at"])
-            return success_response(
-                "토큰 갱신 완료", data={"access": access_token}, status_code=200
+
+            # 새로운 refresh token 생성 (선택사항: Refresh Token Rotation)
+            new_refresh = RefreshToken.for_user_id(user_id)
+            new_refresh_token = str(new_refresh)
+
+            token.refresh_jwt = new_refresh_token
+            token.refresh_expires_at = timezone.now() + timedelta(days=7)
+            token.save(update_fields=["refresh_jwt", "refresh_expires_at"])
+
+            response = success_response(
+                "토큰 갱신 완료", data={"access": new_access_token}, status_code=200
             )
+
+            # 새로운 refresh token을 쿠키로 설정
+            set_refresh_token_cookie(response, new_refresh_token)
+
+            return response
         except Exception as e:
             logger.error(f"Token refresh error: {str(e)}")
             return error_response(
@@ -498,9 +537,14 @@ class UserDeleteView(APIView):
         user.is_active = False
         user.save(update_fields=["deleted_at", "is_active"])
         logger.info(f"User deleted: {user.email}")
-        return success_response(
+
+        response = success_response(
             "회원탈퇴 완료", data={"deleted": True}, status_code=200
         )
+        # 탈퇴 시 쿠키 삭제
+        response.delete_cookie('refresh_token')
+
+        return response
 
 
 # ============ Social Views ============
@@ -534,15 +578,20 @@ class SocialLoginView(APIView):
 
             access, refresh = create_jwt_token(user)
             logger.info(f"Social login success: {provider} - {user.email}")
-            return success_response(
+
+            response = success_response(
                 "로그인 성공",
                 data={
                     "user": get_user_data(user),
                     "access": access,
-                    "refresh": refresh,
                 },
                 status_code=200,
             )
+
+            # Refresh token을 HttpOnly 쿠키로 설정
+            set_refresh_token_cookie(response, refresh)
+
+            return response
         except SocialTokenInvalidError:
             return error_response(
                 "token_invalid", "소셜 인증 실패", status.HTTP_401_UNAUTHORIZED
@@ -605,9 +654,10 @@ class SocialCallbackView(APIView):
 
             access, refresh = create_jwt_token(user)
             logger.info(f"Social callback success: {provider} - {user.email}")
-            return redirect(
-                f"http://localhost:3000/login/success?access={access}&refresh={refresh}"
-            )
+            response = redirect(f"http://localhost:3000/login/success?access={access}")
+            set_refresh_token_cookie(response, refresh)
+
+            return response
         except Exception as e:
             logger.exception(f"Social callback error: {str(e)}")
             return redirect("http://localhost:3000/login/failed")

@@ -5,7 +5,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from .models import SocialAccount, User
+from .models import SocialAccount, Token, User
 
 
 class NicknameValidateSerializer(serializers.Serializer):
@@ -301,8 +301,6 @@ class PasswordChangeSerializer(serializers.Serializer):
 
 
 class UserDeleteSerializer(serializers.Serializer):
-    """회원탈퇴 - 비밀번호 확인 불필요"""
-
     pass
 
 
@@ -332,4 +330,48 @@ class SocialLinkSerializer(serializers.Serializer):
 
 
 class SocialUnlinkSerializer(serializers.Serializer):
+    pass
+
+
+class RefreshTokenSerializer(serializers.Serializer):
+    refresh = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_refresh(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Refresh 토큰이 필요합니다.")
+        return value.strip()
+
+
+class TokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Token
+        fields = [
+            "id",
+            "user",
+            "access_jwt",
+            "refresh_jwt",
+            "access_expires_at",
+            "refresh_expires_at",
+            "revoked",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "access_jwt",
+            "refresh_jwt",
+            "access_expires_at",
+            "refresh_expires_at",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class AccessTokenResponseSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField(required=False)
+    expires_in = serializers.IntegerField(required=False)  # 초 단위
+
+
+class TokenRevokeSerializer(serializers.Serializer):
     pass
