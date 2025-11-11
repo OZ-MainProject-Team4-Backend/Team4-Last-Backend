@@ -26,7 +26,7 @@ from drf_spectacular.views import (
 from rest_framework import permissions
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='/api/schema/swagger-ui/', permanent=False)),
+    #path('', RedirectView.as_view(url='/api/schema/swagger-ui/', permanent=False)),
     path(
         "api/schema/",
         SpectacularAPIView.as_view(permission_classes=[permissions.AllowAny]),
