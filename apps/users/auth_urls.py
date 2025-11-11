@@ -1,7 +1,6 @@
 # apps/users/auth_urls.py
 from django.urls import path
 
-from .views import RefreshTokenView  # ← 추가
 from .views import (
     EmailChangeVerifyView,
     EmailSendView,
@@ -13,7 +12,12 @@ from .views import (
     NicknameValidateView,
     PasswordChangeView,
     ProfileUpdateView,
+    RefreshTokenView,
     SignUpView,
+    SocialCallbackView,
+    SocialLinkView,
+    SocialLoginView,
+    SocialUnlinkView,
     UserDeleteView,
 )
 
