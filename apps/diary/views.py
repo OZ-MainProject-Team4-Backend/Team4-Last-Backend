@@ -50,9 +50,8 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic  # 날씨 저장 중 오류 발생 시 일기까지 저장되지 않도록 롤백
     def perform_create(self, serializer):
-        user = self.request.user
-        lat = serializer.validated_data.get("lat")
-        lon = serializer.validated_data.get("lon")
+        lat = serializer.validated_data.pop("lat", None)
+        lon = serializer.validated_data.pop("lon", None)
 
         #  1. 날씨 데이터 조회
         try:
@@ -80,7 +79,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
             )
 
         #  4. Diary 저장 (날씨 자동 연결)
-        serializer.save(user=user, weather_data=weather_data)
+        serializer.save(user=self.request.user, weather_data=weather_data)
 
     def perform_destroy(self, instance):
         instance.delete()
