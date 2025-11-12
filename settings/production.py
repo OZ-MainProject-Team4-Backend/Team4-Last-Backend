@@ -1,11 +1,14 @@
-from .base import *
-from datetime import timedelta
 import os
+from datetime import timedelta
+
+from .base import *
 
 # ============ 기본 설정 ============
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = False
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['team4.p-e.kr', 'localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list(
+    'DJANGO_ALLOWED_HOSTS', default=['team4.p-e.kr', 'localhost', '127.0.0.1']
+)
 
 # ============ 데이터베이스 설정 (RDS PostgreSQL) ============
 DATABASES = {
@@ -45,7 +48,9 @@ AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='ap-northeast-2')
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+AWS_S3_CUSTOM_DOMAIN = (
+    f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+)
 
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
@@ -60,7 +65,9 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 AWS_DEFAULT_ACL = 'public-read'
 
 # ============ 이메일 설정 ============
-EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_BACKEND = env(
+    'EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend'
+)
 EMAIL_HOST = env('EMAIL_HOST', default='smtp.naver.com')
 EMAIL_PORT = env('EMAIL_PORT', default=465, cast=int)
 EMAIL_USE_SSL = env('EMAIL_USE_SSL', default=True, cast=bool)
@@ -76,9 +83,9 @@ SOCIAL_PROVIDERS['kakao']['redirect_uri'] = env('KAKAO_REDIRECT_URI')
 
 # ============ CORS 설정 ============
 CORS_ALLOWED_ORIGINS = env.list(
-       'CORS_ALLOWED_ORIGINS',
-       default=['https://team4.p-e.kr', 'http://localhost:5173'],
-   )
+    'CORS_ALLOWED_ORIGINS',
+    default=['https://team4.p-e.kr', 'http://localhost:5173'],
+)
 CORS_ALLOW_CREDENTIALS = True
 
 # ============ JWT 설정 ============
