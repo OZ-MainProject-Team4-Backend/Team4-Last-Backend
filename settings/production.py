@@ -1,47 +1,94 @@
+import os
+from datetime import timedelta
+
 from .base import *
 
-# ==================== 캐시 설정 ====================
-CACHES = {
-    "default": env.cache_url("CACHE_URL", default="locmem://"),
-}
-
-
-# ==================== 보안 설정 ====================
+# ============ 기본 설정 ============
 SECRET_KEY = env('DJANGO_SECRET_KEY')
-
 DEBUG = False
-
 ALLOWED_HOSTS = env.list(
-    'DJANGO_ALLOWED_HOSTS', default=['.p-e.kr', 'localhost', '127.0.0.1']
+    'DJANGO_ALLOWED_HOSTS', default=['team4.p-e.kr', 'localhost', '127.0.0.1']
 )
 
-SESSION_COOKIE_SECURE = True
+# ============ 데이터베이스 설정 (RDS PostgreSQL) ============
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('DB_NAME'),
+        'USER': env('DB_USER'),
+        'PASSWORD': env('DB_PASSWORD'),
+        'HOST': env('DB_HOST'),
+        'PORT': env('DB_PORT', default='5432'),
+        'CONN_MAX_AGE': 600,
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
+    }
+}
 
+# ============ 캐시 설정 (Redis) ============
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': env('CACHE_URL', default='redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 50,
+                'retry_on_timeout': True,
+            },
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+        },
+    }
+}
 
-# ==================== 소셜 로그인 설정 ====================
-SOCIAL_PROVIDERS["kakao"]["redirect_uri"] = env('KAKAO_REDIRECT_URI')
-SOCIAL_PROVIDERS["naver"]["redirect_uri"] = env('NAVER_REDIRECT_URI')
-SOCIAL_PROVIDERS["google"]["redirect_uri"] = env('GOOGLE_REDIRECT_URI')
+# ============ S3 설정 ============
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='ap-northeast-2')
+AWS_S3_CUSTOM_DOMAIN = (
+    f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+)
 
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
 
-# ==================== 이메일 설정 ====================
+STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+AWS_DEFAULT_ACL = 'public-read'
+
+# ============ 이메일 설정 ============
+EMAIL_BACKEND = env(
+    'EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend'
+)
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.naver.com')
+EMAIL_PORT = env('EMAIL_PORT', default=465, cast=int)
+EMAIL_USE_SSL = env('EMAIL_USE_SSL', default=True, cast=bool)
+EMAIL_USE_TLS = env('EMAIL_USE_TLS', default=False, cast=bool)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+# ============ 소셜 로그인 설정 ============
+SOCIAL_PROVIDERS['naver']['redirect_uri'] = env('NAVER_REDIRECT_URI')
+SOCIAL_PROVIDERS['google']['redirect_uri'] = env('GOOGLE_REDIRECT_URI')
+SOCIAL_PROVIDERS['kakao']['redirect_uri'] = env('KAKAO_REDIRECT_URI')
 
-# ==================== CORS 설정 ====================
+# ============ CORS 설정 ============
 CORS_ALLOWED_ORIGINS = env.list(
     'CORS_ALLOWED_ORIGINS',
-    default=[
-        'https://your-production-frontend.com',
-    ],
+    default=['https://team4.p-e.kr', 'http://localhost:5173'],
 )
+CORS_ALLOW_CREDENTIALS = True
 
-
-# ==================== JWT 설정 ====================
-from datetime import timedelta
-
+# ============ JWT 설정 ============
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -52,25 +99,43 @@ SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,
 }
 
+# ============ 쿠키 보안 설정 ============
+SECURE_COOKIE_HTTPONLY = True
+SECURE_COOKIE_SECURE = True
+SECURE_COOKIE_SAMESITE = 'Strict'
 
-# ==================== 보안 헤더 설정 ====================
-# 로컬 테스트: False, 배포: True로 변경
-SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'Strict'
 
-# DEBUG 상태에 따라 HSTS 설정
-SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
-SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
-SECURE_HSTS_PRELOAD = not DEBUG
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'Strict'
+
+REFRESH_COOKIE_SECURE = True
+REFRESH_COOKIE_HTTPONLY = True
+REFRESH_COOKIE_SAMESITE = 'Strict'
+SECURE_COOKIES = True
+
+# ============ 보안 헤더 설정 ============
+SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 
 X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_SECURITY_POLICY = {
-    "default-src": ("'self'",),
+    'default-src': ("'self'", 'https://team4.p-e.kr'),
+    'script-src': ("'self'", "'unsafe-inline'"),
+    'img-src': ("'self'", 'data:', f'https://{AWS_S3_CUSTOM_DOMAIN}'),
+    'style-src': ("'self'", "'unsafe-inline'", f'https://{AWS_S3_CUSTOM_DOMAIN}'),
+    'font-src': ("'self'", f'https://{AWS_S3_CUSTOM_DOMAIN}'),
 }
 
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
-# ==================== Logging 설정 ====================
-import os
-
+# ============ 로깅 설정 ============
 LOGGING_DIR = os.path.join(BASE_DIR, 'logs')
 if not os.path.exists(LOGGING_DIR):
     os.makedirs(LOGGING_DIR)
@@ -89,7 +154,7 @@ LOGGING = {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(LOGGING_DIR, 'app.log'),
-            'maxBytes': 1024 * 1024 * 10,  # 10MB
+            'maxBytes': 1024 * 1024 * 10,
             'backupCount': 10,
             'formatter': 'verbose',
         },
@@ -97,9 +162,29 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOGGING_DIR, 'error.log'),
+            'maxBytes': 1024 * 1024 * 10,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
     },
     'root': {
-        'handlers': ['file', 'console'],
+        'handlers': ['file', 'console', 'error_file'],
         'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps': {
+            'handlers': ['file', 'console', 'error_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
