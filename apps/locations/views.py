@@ -120,7 +120,6 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
 
         return Response({"message": "즐겨찾기 정보가 수정되었습니다."}, status=200)
 
-
     @extend_schema(
         request=FavoriteLocationReorderSerializer(many=True),
         responses={200: {"message": "즐겨찾기 순서가 변경되었습니다."}},

@@ -69,5 +69,6 @@ class FavoriteLocationAliasSerializer(serializers.ModelSerializer):
 
 class FavoriteLocationReorderSerializer(serializers.Serializer):
     """즐겨찾기 순서 변경용 시리얼라이저"""
+
     id = serializers.IntegerField()
     order = serializers.IntegerField()
