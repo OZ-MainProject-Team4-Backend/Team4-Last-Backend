@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
-from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
+from rest_framework.test import APIClient, APITestCase
+
 from apps.locations.models import FavoriteLocation
 
 User = get_user_model()
