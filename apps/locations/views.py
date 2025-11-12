@@ -106,7 +106,10 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        super().partial_update(request, *args, **kwargs)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
         return Response({"message": "즐겨찾기 정보가 수정되었습니다."}, status=200)
 
     @action(detail=False, methods=["patch"], url_path="reorder")
