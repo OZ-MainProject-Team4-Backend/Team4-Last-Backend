@@ -50,13 +50,13 @@ CORS_ALLOWED_ORIGINS = [
 # 개발 환경에서는 토큰 만료 시간을 길게 설정 (선택사항)
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
-     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
-     'ROTATE_REFRESH_TOKENS': True,
-     'BLACKLIST_AFTER_ROTATION': True,
-     'UPDATE_LAST_LOGIN': True,
-     'ALGORITHM': 'HS256',
-     'SIGNING_KEY': SECRET_KEY,
- }
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+}
 
 
 # ==================== 로깅 설정 ====================
