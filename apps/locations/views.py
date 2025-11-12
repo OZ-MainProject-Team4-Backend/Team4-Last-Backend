@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
+from drf_spectacular.utils import extend_schema
 from .models import FavoriteLocation
 from .serializers import (
     FavoriteLocationSerializer,
@@ -53,6 +53,21 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
                 "id": instance.id,
             },
             status=status.HTTP_201_CREATED,
+        )
+
+
+    # PUT 전체 수정 비활성화
+    @extend_schema(exclude=True)
+    def update(self, request, *args, **kwargs):
+        """
+        PUT 요청 비활성화 — 전체 수정은 허용하지 않음
+        """
+        return Response(
+            {
+                "error": "method_not_allowed",
+                "message": "전체 수정(PUT)은 지원하지 않습니다. PATCH를 사용하세요.",
+            },
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
     @transaction.atomic
