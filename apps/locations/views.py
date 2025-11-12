@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from .models import FavoriteLocation
 from .serializers import (
+    FavoriteLocationAliasSerializer,
     FavoriteLocationSerializer,
 )
 
@@ -21,6 +22,12 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
 
     permission_classes = [IsAuthenticated]
     serializer_class = FavoriteLocationSerializer
+
+    def get_serializer_class(self):
+        """별칭만 수정 가능한 시리얼라이저 사용"""
+        if self.action == "partial_update":
+            return FavoriteLocationAliasSerializer
+        return FavoriteLocationSerializer
 
     def get_queryset(self):
         """사용자의 즐겨찾기 목록만 조회 (소프트삭제 제외)"""

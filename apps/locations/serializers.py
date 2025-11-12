@@ -57,3 +57,11 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
                     "message": "이미 즐겨찾기에 등록된 지역입니다.",
                 }
             )
+
+
+class FavoriteLocationAliasSerializer(serializers.ModelSerializer):
+    """별칭(alias) 수정용 시리얼라이저"""
+
+    class Meta:
+        model = FavoriteLocation
+        fields = ["alias"]
