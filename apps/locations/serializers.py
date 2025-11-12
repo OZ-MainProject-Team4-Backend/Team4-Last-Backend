@@ -65,3 +65,10 @@ class FavoriteLocationAliasSerializer(serializers.ModelSerializer):
     class Meta:
         model = FavoriteLocation
         fields = ["alias"]
+
+
+class FavoriteLocationReorderSerializer(serializers.Serializer):
+    """즐겨찾기 순서 변경용 시리얼라이저"""
+
+    id = serializers.IntegerField(help_text="즐겨찾기 ID")
+    order = serializers.IntegerField(help_text="새로운 순서값 (0부터 시작)")

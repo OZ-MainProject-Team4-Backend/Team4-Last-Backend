@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from .models import FavoriteLocation
 from .serializers import (
     FavoriteLocationAliasSerializer,
+    FavoriteLocationReorderSerializer,
     FavoriteLocationSerializer,
 )
 
@@ -121,6 +122,11 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["patch"], url_path="reorder")
     @transaction.atomic
+    @extend_schema(
+        request=FavoriteLocationReorderSerializer(many=True),
+        responses={200: {"message": "즐겨찾기 순서가 변경되었습니다."}},
+        description="즐겨찾기 순서를 변경합니다. id와 order로 구성된 리스트를 전달해야 합니다.",
+    )
     def reorder(self, request):
         """
         PATCH /api/locations/favorites/reorder
