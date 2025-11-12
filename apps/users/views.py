@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils import timezone
-from rest_framework import permissions, status
+from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -23,7 +23,6 @@ from .serializers import (
     LoginSerializer,
     NicknameValidateSerializer,
     PasswordChangeSerializer,
-    RefreshTokenSerializer,
     SignupSerializer,
     SocialLinkSerializer,
     SocialLoginSerializer,
@@ -117,25 +116,6 @@ def key_nickname_valid(nickname: str):
     return f"nickname_valid:{nickname.lower()}"
 
 
-def create_jwt_token(user):
-    """JWT 토큰 생성 및 DB 저장"""
-    refresh = RefreshToken.for_user(user)
-    access_token = str(refresh.access_token)
-    refresh_token = str(refresh)
-
-    Token.objects.update_or_create(
-        user=user,
-        defaults={
-            "access_jwt": access_token,
-            "refresh_jwt": refresh_token,
-            "access_expires_at": timezone.now() + timedelta(minutes=15),
-            "refresh_expires_at": timezone.now() + timedelta(days=7),
-            "revoked": False,
-        },
-    )
-    return access_token, refresh_token
-
-
 def get_user_data(user):
     """사용자 데이터 포맷팅"""
     return {
@@ -151,16 +131,27 @@ def get_user_data(user):
     }
 
 
-def set_refresh_token_cookie(response, refresh_token):
-    """Refresh Token을 HttpOnly 쿠키로 설정"""
-    response.set_cookie(
-        key='refresh_token',
-        value=refresh_token,
-        httponly=True,
-        secure=getattr(settings, 'SECURE_COOKIES', True),  # HTTPS 환경에서만 전송
-        samesite='Lax',
-        max_age=7 * 24 * 60 * 60,  # 7일
-    )
+def set_refresh_token_cookie(response, refresh_token, is_auto_login=False):
+    """Refresh Token을 HttpOnly 쿠키로 설정
+
+    Args:
+        response: Response 객체
+        refresh_token: Refresh Token 값
+        is_auto_login: True면 7일 유효, False면 세션 쿠키
+    """
+    cookie_params = {
+        "key": "refresh",
+        "value": refresh_token,
+        "httponly": True,
+        "secure": getattr(settings, 'SECURE_COOKIES', True),
+        "samesite": "Strict",
+    }
+
+    # 자동로그인 선택 시에만 max_age 설정 (persistent cookie)
+    if is_auto_login:
+        cookie_params["max_age"] = 7 * 24 * 60 * 60
+
+    response.set_cookie(**cookie_params)
 
 
 # ============ Auth Views ============
@@ -333,33 +324,23 @@ class LoginView(APIView):
             status_code=200,
         )
 
-        # 쿠키 설정
-        cookie_params = {
-            "key": "refresh",
-            "value": tokens["refresh"],
-            "httponly": True,
-            "samesite": "Strict",
-            "secure": True,
-        }
-        if is_auto_login:
-            cookie_params["max_age"] = 7 * 24 * 60 * 60
-
-        response.set_cookie(**cookie_params)
+        # 쿠키 설정 (자동로그인 여부에 따라 max_age 결정)
+        set_refresh_token_cookie(response, tokens["refresh"], is_auto_login)
         return response
 
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def post(self, request):
+        try:
+            revoke_token(request.user)
+        except Token.DoesNotExist:
+            pass  # 토큰이 없어도 계속 진행
 
-def post(self, request):
-    try:
-        revoke_token(request.user)
         response = Response(status=status.HTTP_204_NO_CONTENT)
         response.delete_cookie("refresh")
         return response
-    except Token.DoesNotExist:
-        return error_response(...)
 
 
 class RefreshTokenView(APIView):
@@ -367,9 +348,7 @@ class RefreshTokenView(APIView):
 
     def post(self, request):
         # 1. Refresh 토큰 조회
-        refresh_token = request.data.get("refresh") or request.COOKIES.get(
-            "refresh_token"
-        )
+        refresh_token = request.data.get("refresh") or request.COOKIES.get("refresh")
 
         if not refresh_token:
             return error_response(
@@ -415,8 +394,8 @@ class RefreshTokenView(APIView):
                 status_code=200,
             )
 
-            # 7. 새 Refresh token 쿠키 저장
-            set_refresh_token_cookie(response, str(new_refresh))
+            # 7. 새 Refresh token 쿠키 저장 (기존 자동로그인 설정 유지)
+            set_refresh_token_cookie(response, str(new_refresh), token.is_auto_login)
 
             return response
 
@@ -570,7 +549,7 @@ class UserDeleteView(APIView):
             "회원탈퇴 완료", data={"deleted": True}, status_code=200
         )
         # 탈퇴 시 쿠키 삭제
-        response.delete_cookie('refresh_token')
+        response.delete_cookie("refresh")
 
         return response
 
@@ -592,6 +571,9 @@ class SocialLoginView(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
+            # 자동로그인 여부 (요청에서 받기, 기본값: False)
+            is_auto_login = request.data.get("isAutoLogin", False)
+
             social_user_info = verify_social_token(
                 provider, serializer.validated_data["token"]
             )
@@ -604,20 +586,23 @@ class SocialLoginView(APIView):
                     "account_inactive", "비활성 계정", status.HTTP_403_FORBIDDEN
                 )
 
-            access, refresh = create_jwt_token(user)
+            # 토큰 생성 (자동로그인 여부 전달)
+            tokens = create_jwt_pair_for_user(user, is_auto_login)
             logger.info(f"Social login success: {provider} - {user.email}")
 
             response = success_response(
                 "로그인 성공",
                 data={
                     "user": get_user_data(user),
-                    "access": access,
+                    "access": tokens["access"],
+                    "access_expires_at": tokens["access_expires_at"],
+                    "is_auto_login": is_auto_login,
                 },
                 status_code=200,
             )
 
-            # Refresh token을 HttpOnly 쿠키로 설정
-            set_refresh_token_cookie(response, refresh)
+            # 쿠키 설정 (자동로그인 여부에 따라 max_age 결정)
+            set_refresh_token_cookie(response, tokens["refresh"], is_auto_login)
 
             return response
         except SocialTokenInvalidError:
@@ -680,10 +665,14 @@ class SocialCallbackView(APIView):
             if user.deleted_at or not user.is_active:
                 return redirect("http://localhost:3000/login/failed")
 
-            access, refresh = create_jwt_token(user)
+            # 콜백은 기본 자동로그인 OFF (세션 쿠키)
+            tokens = create_jwt_pair_for_user(user, is_auto_login=False)
             logger.info(f"Social callback success: {provider} - {user.email}")
-            response = redirect(f"http://localhost:3000/login/success?access={access}")
-            set_refresh_token_cookie(response, refresh)
+
+            response = redirect(
+                f"http://localhost:3000/login/success?access={tokens['access']}"
+            )
+            set_refresh_token_cookie(response, tokens["refresh"], is_auto_login=False)
 
             return response
         except Exception as e:
