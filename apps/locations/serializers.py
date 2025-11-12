@@ -58,6 +58,7 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
                 }
             )
 
+
 class FavoriteLocationAliasSerializer(serializers.ModelSerializer):
     """별칭(alias) 수정용 시리얼라이저"""
 

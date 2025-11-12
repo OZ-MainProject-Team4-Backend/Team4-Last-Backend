@@ -8,9 +8,10 @@ from rest_framework.response import Response
 
 from .models import FavoriteLocation
 from .serializers import (
-    FavoriteLocationSerializer,
     FavoriteLocationAliasSerializer,
+    FavoriteLocationSerializer,
 )
+
 
 class FavoriteLocationViewSet(viewsets.ModelViewSet):
     """
