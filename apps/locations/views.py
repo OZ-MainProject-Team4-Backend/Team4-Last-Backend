@@ -120,13 +120,14 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
 
         return Response({"message": "즐겨찾기 정보가 수정되었습니다."}, status=200)
 
-    @action(detail=False, methods=["patch"], url_path="reorder")
-    @transaction.atomic
+
     @extend_schema(
         request=FavoriteLocationReorderSerializer(many=True),
         responses={200: {"message": "즐겨찾기 순서가 변경되었습니다."}},
         description="즐겨찾기 순서를 변경합니다. id와 order로 구성된 리스트를 전달해야 합니다.",
     )
+    @action(detail=False, methods=["patch"], url_path="reorder")
+    @transaction.atomic
     def reorder(self, request):
         """
         PATCH /api/locations/favorites/reorder
@@ -177,6 +178,8 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
         # 4. 업데이트
         for item in request.data:
             FavoriteLocation.objects.filter(
-                id=item.get("id"), user=request.user
+                id=item.get("id"),
+                user=request.user,
+                deleted_at__isnull=True,
             ).update(order=item.get("order"))
         return Response({"message": "즐겨찾기 순서가 변경되었습니다."}, status=200)
