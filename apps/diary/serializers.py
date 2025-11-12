@@ -34,8 +34,8 @@ class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
 
 
 class DiaryCreateSerializer(serializers.ModelSerializer):
-    lat = serializers.FloatField(write_only=True, required=True)
-    lon = serializers.FloatField(write_only=True, required=True)
+    lat = serializers.FloatField(write_only=True, required=False, help_text="(자동 처리용)")
+    lon = serializers.FloatField(write_only=True, required=False, help_text="(자동 처리용)")
     image = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
