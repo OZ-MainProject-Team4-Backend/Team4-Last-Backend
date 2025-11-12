@@ -1,6 +1,8 @@
 from django.db import transaction
+from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -25,6 +27,48 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
         return FavoriteLocation.objects.filter(
             user=self.request.user, deleted_at__isnull=True
         ).order_by("order")
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """
+        POST /api/locations/favorites/
+        즐겨찾기 추가 (serializer.create 로직 호출 후 message 포함 응답)
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            instance = serializer.save()
+        except ValidationError as e:
+            # ValidationError의 error 코드에 따라 상태 코드 분기
+            error = e.detail.get("error") if isinstance(e.detail, dict) else None
+            if error == "already_exists":
+                return Response(e.detail, status=status.HTTP_409_CONFLICT)
+            elif error == "limit_exceeded":
+                return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                "message": "즐겨찾기에 추가되었습니다.",
+                "id": instance.id,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    # PUT 전체 수정 비활성화
+    @extend_schema(exclude=True)
+    def update(self, request, *args, **kwargs):
+        """
+        PUT 요청 비활성화 — 전체 수정은 허용하지 않음
+        """
+        return Response(
+            {
+                "error": "method_not_allowed",
+                "message": "전체 수정(PUT)은 지원하지 않습니다. PATCH를 사용하세요.",
+            },
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
     @transaction.atomic
     def destroy(self, request, *args, **kwargs):

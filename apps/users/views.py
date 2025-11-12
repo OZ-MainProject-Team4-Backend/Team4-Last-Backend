@@ -19,10 +19,10 @@ from .serializers import (
     EmailSendSerializer,
     EmailVerifySerializer,
     FavoriteRegionsSerializer,
+    LoginResponseSerializer,
     LoginSerializer,
     NicknameValidateSerializer,
     PasswordChangeSerializer,
-    RefreshTokenSerializer,
     SignupSerializer,
     SocialLinkSerializer,
     SocialLoginSerializer,
@@ -31,6 +31,7 @@ from .serializers import (
     UserProfileSerializer,
 )
 from .services.social_auth_service import SocialAuthService
+from .services.token_service import create_jwt_pair_for_user, revoke_token
 from .utils.send_email import send_verification_email
 from .utils.social_auth import (
     SocialTokenInvalidError,
@@ -115,25 +116,6 @@ def key_nickname_valid(nickname: str):
     return f"nickname_valid:{nickname.lower()}"
 
 
-def create_jwt_token(user):
-    """JWT 토큰 생성 및 DB 저장"""
-    refresh = RefreshToken.for_user(user)
-    access_token = str(refresh.access_token)
-    refresh_token = str(refresh)
-
-    Token.objects.update_or_create(
-        user=user,
-        defaults={
-            "access_jwt": access_token,
-            "refresh_jwt": refresh_token,
-            "access_expires_at": timezone.now() + timedelta(minutes=15),
-            "refresh_expires_at": timezone.now() + timedelta(days=7),
-            "revoked": False,
-        },
-    )
-    return access_token, refresh_token
-
-
 def get_user_data(user):
     """사용자 데이터 포맷팅"""
     return {
@@ -149,16 +131,27 @@ def get_user_data(user):
     }
 
 
-def set_refresh_token_cookie(response, refresh_token):
-    """Refresh Token을 HttpOnly 쿠키로 설정"""
-    response.set_cookie(
-        key='refresh_token',
-        value=refresh_token,
-        httponly=True,
-        secure=getattr(settings, 'SECURE_COOKIES', True),  # HTTPS 환경에서만 전송
-        samesite='Lax',
-        max_age=7 * 24 * 60 * 60,  # 7일
-    )
+def set_refresh_token_cookie(response, refresh_token, is_auto_login=False):
+    """Refresh Token을 HttpOnly 쿠키로 설정
+
+    Args:
+        response: Response 객체
+        refresh_token: Refresh Token 값
+        is_auto_login: True면 7일 유효, False면 세션 쿠키
+    """
+    cookie_params = {
+        "key": "refresh",
+        "value": refresh_token,
+        "httponly": True,
+        "secure": getattr(settings, 'SECURE_COOKIES', True),
+        "samesite": "Strict",
+    }
+
+    # 자동로그인 선택 시에만 max_age 설정 (persistent cookie)
+    if is_auto_login:
+        cookie_params["max_age"] = 7 * 24 * 60 * 60
+
+    response.set_cookie(**cookie_params)
 
 
 # ============ Auth Views ============
@@ -306,33 +299,33 @@ class LoginView(APIView):
     serializer_class = LoginSerializer
 
     def post(self, request):
+        # 요청 검증
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         user = serializer.validated_data["user"]
+        is_auto_login = serializer.validated_data["isAutoLogin"]
 
-        if not getattr(user, "email_verified", False):
-            return error_response(
-                "email_not_verified", "이메일 인증 필요", status.HTTP_401_UNAUTHORIZED
-            )
+        # 토큰 생성
+        tokens = create_jwt_pair_for_user(user, is_auto_login)
 
-        if not getattr(user, "is_active", True) or getattr(user, "deleted_at", None):
-            return error_response(
-                "account_inactive",
-                "비활성한 계정이거나 탈퇴 계정입니다",
-                status.HTTP_403_FORBIDDEN,
-            )
+        # 응답 직렬화
+        response_data = {
+            "access": tokens["access"],
+            "access_expires_at": tokens["access_expires_at"],
+            "is_auto_login": is_auto_login,
+        }
+        response_serializer = LoginResponseSerializer(response_data)
 
-        access, refresh = create_jwt_token(user)
-
+        # 응답 생성
         response = success_response(
             "로그인 성공",
-            data={"user": get_user_data(user), "access": access},
+            data=response_serializer.data,
             status_code=200,
         )
 
-        # Refresh token을 HttpOnly 쿠키로 설정
-        set_refresh_token_cookie(response, refresh)
-
+        # 쿠키 설정 (자동로그인 여부에 따라 max_age 결정)
+        set_refresh_token_cookie(response, tokens["refresh"], is_auto_login)
         return response
 
 
@@ -341,29 +334,21 @@ class LogoutView(APIView):
 
     def post(self, request):
         try:
-            token = Token.objects.get(user=request.user)
-            token.revoked = True
-            token.save(update_fields=["revoked"])
-
-            response = success_response("로그아웃 완료", status_code=200)
-            # Refresh token 쿠키 삭제
-            response.delete_cookie('refresh_token')
-
-            return response
+            revoke_token(request.user)
         except Token.DoesNotExist:
-            return error_response(
-                "token_not_found", "토큰을 찾을 수 없습니다", status.HTTP_404_NOT_FOUND
-            )
+            pass  # 토큰이 없어도 계속 진행
+
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        response.delete_cookie("refresh")
+        return response
 
 
 class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
-    serializer_class = RefreshTokenSerializer
 
     def post(self, request):
-        refresh_token = request.data.get("refresh") or request.COOKIES.get(
-            'refresh_token'
-        )
+        # 1. Refresh 토큰 조회
+        refresh_token = request.data.get("refresh") or request.COOKIES.get("refresh")
 
         if not refresh_token:
             return error_response(
@@ -373,31 +358,53 @@ class RefreshTokenView(APIView):
             )
 
         try:
+            # 2. JWT 디코딩
             refresh = RefreshToken(refresh_token)
             new_access_token = str(refresh.access_token)
             user_id = refresh.get("user_id")
 
+            # 3. DB 토큰 확인 (revoked 여부)
             token = Token.objects.get(user_id=user_id, revoked=False)
+
+            # 4. Access token 갱신 (15분)
             token.access_jwt = new_access_token
             token.access_expires_at = timezone.now() + timedelta(minutes=15)
-            token.save(update_fields=["access_jwt", "access_expires_at"])
 
-            # 새로운 refresh token 생성 (선택사항: Refresh Token Rotation)
+            # 5. Refresh token 회전 (새로 생성 - 7일)
             new_refresh = RefreshToken.for_user_id(user_id)
-            new_refresh_token = str(new_refresh)
-
-            token.refresh_jwt = new_refresh_token
+            token.refresh_jwt = str(new_refresh)
             token.refresh_expires_at = timezone.now() + timedelta(days=7)
-            token.save(update_fields=["refresh_jwt", "refresh_expires_at"])
 
-            response = success_response(
-                "토큰 갱신 완료", data={"access": new_access_token}, status_code=200
+            token.save(
+                update_fields=[
+                    "access_jwt",
+                    "access_expires_at",
+                    "refresh_jwt",
+                    "refresh_expires_at",
+                ]
             )
 
-            # 새로운 refresh token을 쿠키로 설정
-            set_refresh_token_cookie(response, new_refresh_token)
+            # 6. 응답 생성
+            response = success_response(
+                "토큰 갱신 완료",
+                data={
+                    "access": new_access_token,
+                    "access_expires_at": token.access_expires_at,
+                },
+                status_code=200,
+            )
+
+            # 7. 새 Refresh token 쿠키 저장 (기존 자동로그인 설정 유지)
+            set_refresh_token_cookie(response, str(new_refresh), token.is_auto_login)
 
             return response
+
+        except Token.DoesNotExist:
+            return error_response(
+                "token_not_found",
+                "토큰 정보를 찾을 수 없습니다",
+                status.HTTP_401_UNAUTHORIZED,
+            )
         except Exception as e:
             logger.error(f"Token refresh error: {str(e)}")
             return error_response(
@@ -542,7 +549,7 @@ class UserDeleteView(APIView):
             "회원탈퇴 완료", data={"deleted": True}, status_code=200
         )
         # 탈퇴 시 쿠키 삭제
-        response.delete_cookie('refresh_token')
+        response.delete_cookie("refresh")
 
         return response
 
@@ -564,6 +571,9 @@ class SocialLoginView(APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
+            # 자동로그인 여부 (요청에서 받기, 기본값: False)
+            is_auto_login = request.data.get("isAutoLogin", False)
+
             social_user_info = verify_social_token(
                 provider, serializer.validated_data["token"]
             )
@@ -576,20 +586,23 @@ class SocialLoginView(APIView):
                     "account_inactive", "비활성 계정", status.HTTP_403_FORBIDDEN
                 )
 
-            access, refresh = create_jwt_token(user)
+            # 토큰 생성 (자동로그인 여부 전달)
+            tokens = create_jwt_pair_for_user(user, is_auto_login)
             logger.info(f"Social login success: {provider} - {user.email}")
 
             response = success_response(
                 "로그인 성공",
                 data={
                     "user": get_user_data(user),
-                    "access": access,
+                    "access": tokens["access"],
+                    "access_expires_at": tokens["access_expires_at"],
+                    "is_auto_login": is_auto_login,
                 },
                 status_code=200,
             )
 
-            # Refresh token을 HttpOnly 쿠키로 설정
-            set_refresh_token_cookie(response, refresh)
+            # 쿠키 설정 (자동로그인 여부에 따라 max_age 결정)
+            set_refresh_token_cookie(response, tokens["refresh"], is_auto_login)
 
             return response
         except SocialTokenInvalidError:
@@ -652,10 +665,14 @@ class SocialCallbackView(APIView):
             if user.deleted_at or not user.is_active:
                 return redirect("http://localhost:3000/login/failed")
 
-            access, refresh = create_jwt_token(user)
+            # 콜백은 기본 자동로그인 OFF (세션 쿠키)
+            tokens = create_jwt_pair_for_user(user, is_auto_login=False)
             logger.info(f"Social callback success: {provider} - {user.email}")
-            response = redirect(f"http://localhost:3000/login/success?access={access}")
-            set_refresh_token_cookie(response, refresh)
+
+            response = redirect(
+                f"http://localhost:3000/login/success?access={tokens['access']}"
+            )
+            set_refresh_token_cookie(response, tokens["refresh"], is_auto_login=False)
 
             return response
         except Exception as e:
