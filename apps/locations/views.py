@@ -1,10 +1,11 @@
 from django.db import transaction
+from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema
+
 from .models import FavoriteLocation
 from .serializers import (
     FavoriteLocationSerializer,
@@ -54,7 +55,6 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_201_CREATED,
         )
-
 
     # PUT 전체 수정 비활성화
     @extend_schema(exclude=True)
