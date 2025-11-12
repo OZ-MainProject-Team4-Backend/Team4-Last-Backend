@@ -9,8 +9,8 @@ from rest_framework.response import Response
 from .models import FavoriteLocation
 from .serializers import (
     FavoriteLocationAliasSerializer,
-    FavoriteLocationSerializer,
     FavoriteLocationReorderSerializer,
+    FavoriteLocationSerializer,
 )
 
 

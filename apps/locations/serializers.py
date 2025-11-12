@@ -66,6 +66,7 @@ class FavoriteLocationAliasSerializer(serializers.ModelSerializer):
         model = FavoriteLocation
         fields = ["alias"]
 
+
 class FavoriteLocationReorderSerializer(serializers.Serializer):
     """즐겨찾기 순서 변경용 시리얼라이저"""
 
