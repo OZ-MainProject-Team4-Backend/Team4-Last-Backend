@@ -184,16 +184,16 @@ def refresh_token_service(refresh_token_value: str):
 # ============ Profile Update Service ============
 def email_change_service(user, new_email: str):
     """이메일 변경 인증 코드 발송"""
-    new_email = new_email.strip().lower()
-    if new_email == user.email.lower():
+    new_email_stripped = new_email.strip().lower() if new_email else ""
+    if new_email_stripped == user.email.lower():
         return (True, None, None, None)
 
-    pending_key = f"email_change_pending:{user.id}:{new_email}"
+    pending_key = f"email_change_pending:{user.id}:{new_email_stripped}"
     code = gen_code(6)
     cache.set(pending_key, code, timeout=EMAIL_PREVER_TTL)
 
     try:
-        send_verification_email(new_email, code)
+        send_verification_email(new_email_stripped, code)
     except Exception as e:
         cache.delete(pending_key)
         logger.exception(f"Email send failed: {str(e)}")
