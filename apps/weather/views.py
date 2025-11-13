@@ -6,6 +6,7 @@ from typing import List, Tuple
 
 from django.db import transaction
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -46,7 +47,9 @@ class WeatherDataOutSerializer(serializers.ModelSerializer):
         return getattr(loc, "dp_name", f"{loc.city} {loc.district}".strip())
 
 
-class WeatherViewSet(viewsets.ViewSet):
+class WeatherViewSet(viewsets.GenericViewSet):
+    serializer_class = WeatherDataOutSerializer
+
     def _resolve_coords_from_query(self, request) -> Tuple[float, float, str, str]:
         q = CurrentQuerySerializer(data=request.query_params)
         q.is_valid(raise_exception=True)
@@ -90,6 +93,27 @@ class WeatherViewSet(viewsets.ViewSet):
             loc.save(update_fields=to_update)
         return loc
 
+    @extend_schema(
+        summary="현재 날씨 조회",
+        parameters=[
+            OpenApiParameter(
+                name="city", type=str, location=OpenApiParameter.QUERY, required=False
+            ),
+            OpenApiParameter(
+                name="district",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                required=False,
+            ),
+            OpenApiParameter(
+                name="lat", type=float, location=OpenApiParameter.QUERY, required=False
+            ),
+            OpenApiParameter(
+                name="lon", type=float, location=OpenApiParameter.QUERY, required=False
+            ),
+        ],
+        responses=WeatherDataOutSerializer,
+    )
     @action(detail=False, methods=["get"], url_path="current")
     def current(self, request):
         try:
@@ -123,6 +147,27 @@ class WeatherViewSet(viewsets.ViewSet):
                 {"detail": "weather_fetch_failed"}, status=status.HTTP_502_BAD_GATEWAY
             )
 
+    @extend_schema(
+        summary="날씨 예보 조회",
+        parameters=[
+            OpenApiParameter(
+                name="city", type=str, location=OpenApiParameter.QUERY, required=False
+            ),
+            OpenApiParameter(
+                name="district",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                required=False,
+            ),
+            OpenApiParameter(
+                name="lat", type=float, location=OpenApiParameter.QUERY, required=False
+            ),
+            OpenApiParameter(
+                name="lon", type=float, location=OpenApiParameter.QUERY, required=False
+            ),
+        ],
+        responses=WeatherDataOutSerializer(many=True),
+    )
     @action(detail=False, methods=["get"], url_path="forecast")
     def forecast(self, request):
         try:
@@ -169,6 +214,30 @@ class WeatherViewSet(viewsets.ViewSet):
                 {"detail": "weather_fetch_failed"}, status=status.HTTP_502_BAD_GATEWAY
             )
 
+    @extend_schema(
+        summary="날씨 히스토리 조회",
+        parameters=[
+            OpenApiParameter(
+                name="location_id",
+                type=int,
+                location=OpenApiParameter.QUERY,
+                required=False,
+            ),
+            OpenApiParameter(
+                name="lat", type=float, location=OpenApiParameter.QUERY, required=False
+            ),
+            OpenApiParameter(
+                name="lon", type=float, location=OpenApiParameter.QUERY, required=False
+            ),
+            OpenApiParameter(
+                name="start", type=str, location=OpenApiParameter.QUERY, required=False
+            ),
+            OpenApiParameter(
+                name="end", type=str, location=OpenApiParameter.QUERY, required=False
+            ),
+        ],
+        responses=WeatherDataOutSerializer(many=True),
+    )
     @action(detail=False, methods=["get"], url_path="history")
     def history(self, request):
         try:
