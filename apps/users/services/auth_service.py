@@ -1,6 +1,3 @@
-# ===================================
-# services/auth_service.py
-# ===================================
 import logging
 from datetime import timedelta
 
@@ -80,7 +77,8 @@ def send_email_verification_service(email: str):
 def verify_email_code_service(email: str, code: str):
     """이메일 인증 코드 검증"""
     cached = cache.get(key_verif(email))
-    if not cached or cached != code:
+    code_stripped = code.strip() if code else ""
+    if not cached or cached != code_stripped:
         return (False, "code_invalid_or_expired", "코드 만료 또는 불일치", status.HTTP_400_BAD_REQUEST)
 
     cache.delete(key_verif(email))
@@ -151,7 +149,7 @@ def refresh_token_service(refresh_token_value: str):
         return (False, None, None, None, None, "refresh_token_required", "Refresh 토큰이 필요합니다", status.HTTP_400_BAD_REQUEST)
 
     try:
-        refresh = RefreshToken(refresh_token_value)
+        refresh = RefreshToken(refresh_token_value)  # type: ignore
         new_access_token = str(refresh.access_token)
         user_id = refresh.get("user_id")
         user = User.objects.get(id=user_id)
