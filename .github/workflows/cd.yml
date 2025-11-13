@@ -15,11 +15,6 @@ jobs:
           host: ec2-3-39-190-109.ap-northeast-2.compute.amazonaws.com
           username: ubuntu
           key: |
-            b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtz
-            c2gtZWQyNTUxOQAAACCwiJG7vxpLsu08KZ59v500/7GBbb9/yXCeuozEvSh8ygAA
-            AIgtR0QSLUdEEgAAAAtzc2gtZWQyNTUxOQAAACCwiJG7vxpLsu08KZ59v500/7GB
-            bb9/yXCeuozEvSh8ygAAAEAwUQIBATAFBgMrZXAEIgQgeNGJofX5XQTKynhGyjvU
-            m7CIkbu/Gkuy7Twpnn2/nTT/sYFtv3/JcJ66jMS9KHzKAAAAAAECAwQF
           script: |
             cd /your_project_path
             docker-compose build
