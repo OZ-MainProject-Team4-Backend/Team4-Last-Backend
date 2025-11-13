@@ -204,18 +204,18 @@ def email_change_service(user, new_email: str):
 
 def verify_email_change_service(user, new_email: str, code: str):
     """이메일 변경 검증"""
-    new_email = new_email.strip().lower()
-    code = code.strip()
+    new_email_stripped = new_email.strip().lower() if new_email else ""
+    code_stripped = code.strip() if code else ""
 
-    if not new_email or not code:
+    if not new_email_stripped or not code_stripped:
         return (False, None, "validation_failed", "email과 인증코드가 필요합니다", status.HTTP_400_BAD_REQUEST)
 
-    pending_key = f"email_change_pending:{user.id}:{new_email}"
+    pending_key = f"email_change_pending:{user.id}:{new_email_stripped}"
     cached = cache.get(pending_key)
-    if not cached or cached != code:
+    if not cached or cached != code_stripped:
         return (False, None, "code_invalid_or_expired", "코드 만료 또는 불일치", status.HTTP_400_BAD_REQUEST)
 
-    user.email = new_email
+    user.email = new_email_stripped
     user.email_verified = True
     user.save(update_fields=["email", "email_verified"])
     cache.delete(pending_key)
