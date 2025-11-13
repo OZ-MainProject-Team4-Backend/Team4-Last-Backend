@@ -11,8 +11,6 @@ from apps.chat.views import AiChatViewSet, ChatLogViewSet
 #     path("", include(router.urls)),
 # ]
 
-from django.urls import path
-from apps.chat.views import AiChatViewSet, ChatLogViewSet
 
 chat_send = AiChatViewSet.as_view({"post": "send"})
 chat_session = AiChatViewSet.as_view({"get": "session"})
