@@ -8,12 +8,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .token_service import create_jwt_pair_for_user, revoke_token
-from .social_auth_service import SocialAuthService
-from ..models import Token, SocialAccount
+from ..models import SocialAccount, Token
 from ..serializers import LoginResponseSerializer
-from ..utils.send_email import send_verification_email
-from ..utils.social_auth import SocialTokenInvalidError, verify_social_token
 from ..utils.auth_utils import (
     EMAIL_PREVER_TTL,
     EMAIL_VERIF_CODE_TTL,
@@ -27,36 +23,64 @@ from ..utils.auth_utils import (
     key_resend,
     key_verif,
 )
+from ..utils.send_email import send_verification_email
+from ..utils.social_auth import SocialTokenInvalidError, verify_social_token
+from .social_auth_service import SocialAuthService
+from .token_service import create_jwt_pair_for_user, revoke_token
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
 # ============ Nickname Service ============
-def validate_nickname_service(nickname: str) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
+def validate_nickname_service(
+    nickname: str,
+) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """닉네임 유효성 검사"""
     if User.objects.filter(nickname__iexact=nickname, deleted_at__isnull=True).exists():
-        return (False, "nickname_already_in_use", "이미 사용 중인 닉네임입니다", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            "nickname_already_in_use",
+            "이미 사용 중인 닉네임입니다",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     cache.set(key_nickname_valid(nickname), True, timeout=300)
     return (True, None, None, None)
 
 
 # ============ Email Verification Service ============
-def send_email_verification_service(email: str) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
+def send_email_verification_service(
+    email: str,
+) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """인증 이메일 발송"""
     if User.objects.filter(
-            email__iexact=email, email_verified=True, deleted_at__isnull=True
+        email__iexact=email, email_verified=True, deleted_at__isnull=True
     ).exists():
-        return (False, "email_already_verified", "이미 인증이 된 이메일", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            "email_already_verified",
+            "이미 인증이 된 이메일",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     if cache.get(key_resend(email)):
-        return (False, "email_resend_limit", "재전송 제한", status.HTTP_429_TOO_MANY_REQUESTS)
+        return (
+            False,
+            "email_resend_limit",
+            "재전송 제한",
+            status.HTTP_429_TOO_MANY_REQUESTS,
+        )
 
     cnt_key = key_count(email)
     cnt = cache.get(cnt_key) or 0
     if cnt >= EMAIL_VERIF_MAX_PER_HOUR:
-        return (False, "email_send_limit", "발송 초과", status.HTTP_429_TOO_MANY_REQUESTS)
+        return (
+            False,
+            "email_send_limit",
+            "발송 초과",
+            status.HTTP_429_TOO_MANY_REQUESTS,
+        )
 
     cache.incr(cnt_key) if cnt else cache.set(cnt_key, 1, timeout=3600)
 
@@ -70,17 +94,29 @@ def send_email_verification_service(email: str) -> Tuple[bool, Optional[str], Op
         cache.delete(key_verif(email))
         cache.delete(key_resend(email))
         logger.exception(f"Email send failed: {str(e)}")
-        return (False, "email_send_failed", "메일 발송 실패", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return (
+            False,
+            "email_send_failed",
+            "메일 발송 실패",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     return (True, None, None, None)
 
 
-def verify_email_code_service(email: str, code: str) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
+def verify_email_code_service(
+    email: str, code: str
+) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """이메일 인증 코드 검증"""
     cached = cache.get(key_verif(email))
     code_stripped = code.strip() if code else ""
     if not cached or cached != code_stripped:
-        return (False, "code_invalid_or_expired", "코드 만료 또는 불일치", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            "code_invalid_or_expired",
+            "코드 만료 또는 불일치",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     cache.delete(key_verif(email))
     cache.set(key_preverified(email), True, timeout=EMAIL_PREVER_TTL)
@@ -88,28 +124,54 @@ def verify_email_code_service(email: str, code: str) -> Tuple[bool, Optional[str
 
 
 # ============ Signup Service ============
-def signup_user_service(validated_data: dict) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
+def signup_user_service(
+    validated_data: dict,
+) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
     """사용자 회원가입"""
     email = validated_data.get("email")
     if not email:
-        return (False, None, "email_invalid", "이메일이 필요합니다", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            None,
+            "email_invalid",
+            "이메일이 필요합니다",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     email = email.strip().lower()
 
     if not cache.get(key_preverified(email)):
-        return (False, None, "email_not_verified", "이메일 미검증", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            None,
+            "email_not_verified",
+            "이메일 미검증",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     if User.objects.filter(email__iexact=email, deleted_at__isnull=True).exists():
-        return (False, None, "email_duplicate", "이메일 중복", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            None,
+            "email_duplicate",
+            "이메일 중복",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     nickname = validated_data.get("nickname")
     if (
-            nickname
-            and User.objects.filter(
-        nickname__iexact=nickname, deleted_at__isnull=True
-    ).exists()
+        nickname
+        and User.objects.filter(
+            nickname__iexact=nickname, deleted_at__isnull=True
+        ).exists()
     ):
-        return (False, None, "nickname_duplicate", "닉네임 중복", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            None,
+            "nickname_duplicate",
+            "닉네임 중복",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     user = User.objects.create_user(**validated_data)
     user.email_verified = True
@@ -148,10 +210,30 @@ def logout_user_service(user: Any) -> Tuple[bool, Optional[str], Optional[str]]:
 
 
 # ============ Refresh Token Service ============
-def refresh_token_service(refresh_token_value: Optional[str]) -> Tuple[bool, Optional[str], Optional[Any], Optional[str], Optional[bool], Optional[str], Optional[str], Optional[int]]:
+def refresh_token_service(
+    refresh_token_value: Optional[str],
+) -> Tuple[
+    bool,
+    Optional[str],
+    Optional[Any],
+    Optional[str],
+    Optional[bool],
+    Optional[str],
+    Optional[str],
+    Optional[int],
+]:
     """Refresh 토큰 갱신"""
     if not refresh_token_value:
-        return (False, None, None, None, None, "refresh_token_required", "Refresh 토큰이 필요합니다", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            None,
+            None,
+            None,
+            None,
+            "refresh_token_required",
+            "Refresh 토큰이 필요합니다",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     try:
         refresh = RefreshToken(refresh_token_value)  # type: ignore
@@ -177,20 +259,54 @@ def refresh_token_service(refresh_token_value: Optional[str]) -> Tuple[bool, Opt
             ]
         )
 
-        return (True, new_access_token, token.access_expires_at, str(new_refresh), token.is_auto_login, None, None, None)
+        return (
+            True,
+            new_access_token,
+            token.access_expires_at,
+            str(new_refresh),
+            token.is_auto_login,
+            None,
+            None,
+            None,
+        )
 
     except Token.DoesNotExist:
-        return (False, None, None, None, None, "token_not_found", "토큰 정보를 찾을 수 없습니다", status.HTTP_401_UNAUTHORIZED)
+        return (
+            False,
+            None,
+            None,
+            None,
+            None,
+            "token_not_found",
+            "토큰 정보를 찾을 수 없습니다",
+            status.HTTP_401_UNAUTHORIZED,
+        )
     except Exception as e:
         logger.error(f"Token refresh error: {str(e)}")
-        return (False, None, None, None, None, "invalid_refresh_token", "유효하지 않은 Refresh 토큰", status.HTTP_401_UNAUTHORIZED)
+        return (
+            False,
+            None,
+            None,
+            None,
+            None,
+            "invalid_refresh_token",
+            "유효하지 않은 Refresh 토큰",
+            status.HTTP_401_UNAUTHORIZED,
+        )
 
 
 # ============ Profile Update Service ============
-def email_change_service(user: Any, new_email: Optional[str]) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
+def email_change_service(
+    user: Any, new_email: Optional[str]
+) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """이메일 변경 인증 코드 발송"""
     if not new_email:
-        return (False, "email_invalid", "유효하지 않은 이메일", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            "email_invalid",
+            "유효하지 않은 이메일",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     new_email_stripped = new_email.strip().lower()
     if new_email_stripped == user.email.lower():
@@ -205,23 +321,42 @@ def email_change_service(user: Any, new_email: Optional[str]) -> Tuple[bool, Opt
     except Exception as e:
         cache.delete(pending_key)
         logger.exception(f"Email send failed: {str(e)}")
-        return (False, "email_send_failed", "메일 발송 실패", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return (
+            False,
+            "email_send_failed",
+            "메일 발송 실패",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     return (True, None, None, None)
 
 
-def verify_email_change_service(user: Any, new_email: str, code: str) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
+def verify_email_change_service(
+    user: Any, new_email: str, code: str
+) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
     """이메일 변경 검증"""
     new_email_stripped = new_email.strip().lower() if new_email else ""
     code_stripped = code.strip() if code else ""
 
     if not new_email_stripped or not code_stripped:
-        return (False, None, "validation_failed", "email과 인증코드가 필요합니다", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            None,
+            "validation_failed",
+            "email과 인증코드가 필요합니다",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     pending_key = f"email_change_pending:{user.id}:{new_email_stripped}"
     cached = cache.get(pending_key)
     if not cached or cached != code_stripped:
-        return (False, None, "code_invalid_or_expired", "코드 만료 또는 불일치", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            None,
+            "code_invalid_or_expired",
+            "코드 만료 또는 불일치",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     user.email = new_email_stripped
     user.email_verified = True
@@ -232,7 +367,9 @@ def verify_email_change_service(user: Any, new_email: str, code: str) -> Tuple[b
 
 
 # ============ Favorite Regions Service ============
-def update_favorite_regions_service(user: Any, regions: list) -> Tuple[bool, list, Optional[str], Optional[str], Optional[int]]:
+def update_favorite_regions_service(
+    user: Any, regions: list
+) -> Tuple[bool, list, Optional[str], Optional[str], Optional[int]]:
     """즐겨찾는 지역 업데이트"""
     user.favorite_regions = regions
     user.updated_at = timezone.now()
@@ -242,10 +379,17 @@ def update_favorite_regions_service(user: Any, regions: list) -> Tuple[bool, lis
 
 
 # ============ User Deletion Service ============
-def delete_user_service(user: Any) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
+def delete_user_service(
+    user: Any,
+) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """사용자 탈퇴"""
     if user.deleted_at:
-        return (False, "already_deleted", "이미 탈퇴한 계정입니다", status.HTTP_400_BAD_REQUEST)
+        return (
+            False,
+            "already_deleted",
+            "이미 탈퇴한 계정입니다",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     user.deleted_at = timezone.now()
     user.is_active = False
@@ -256,14 +400,24 @@ def delete_user_service(user: Any) -> Tuple[bool, Optional[str], Optional[str], 
 
 
 # ============ Social Login Service ============
-def social_login_service(provider: str, token: str, is_auto_login: bool) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
+def social_login_service(
+    provider: str, token: str, is_auto_login: bool
+) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
     """소셜 로그인"""
     try:
         social_user_info = verify_social_token(provider, token)
-        user = SocialAuthService.get_or_create_user_from_social(provider, social_user_info)
+        user = SocialAuthService.get_or_create_user_from_social(
+            provider, social_user_info
+        )
 
         if user.deleted_at or not user.is_active:
-            return (False, None, "account_inactive", "비활성 계정", status.HTTP_403_FORBIDDEN)
+            return (
+                False,
+                None,
+                "account_inactive",
+                "비활성 계정",
+                status.HTTP_403_FORBIDDEN,
+            )
 
         tokens = create_jwt_pair_for_user(user, is_auto_login)
         logger.info(f"Social login success: {provider} - {user.email}")
@@ -279,14 +433,28 @@ def social_login_service(provider: str, token: str, is_auto_login: bool) -> Tupl
         return (True, response_data, None, None, status.HTTP_200_OK)
 
     except SocialTokenInvalidError:
-        return (False, None, "token_invalid", "소셜 인증 실패", status.HTTP_401_UNAUTHORIZED)
+        return (
+            False,
+            None,
+            "token_invalid",
+            "소셜 인증 실패",
+            status.HTTP_401_UNAUTHORIZED,
+        )
     except Exception as e:
         logger.exception(f"Social login error: {str(e)}")
-        return (False, None, "internal_error", "로그인 처리 중 오류가 발생했습니다", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return (
+            False,
+            None,
+            "internal_error",
+            "로그인 처리 중 오류가 발생했습니다",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 # ============ Social Callback Service ============
-def social_callback_service(provider: str, code: Optional[str], config: dict) -> Tuple[bool, Optional[dict], Optional[str], Optional[str]]:
+def social_callback_service(
+    provider: str, code: Optional[str], config: dict
+) -> Tuple[bool, Optional[dict], Optional[str], Optional[str]]:
     """소셜 콜백 처리"""
     import requests
 
@@ -318,7 +486,9 @@ def social_callback_service(provider: str, code: Optional[str], config: dict) ->
 
         user_data = user_info_response.json()
         social_user_info = _parse_social_user(provider, user_data)
-        user = SocialAuthService.get_or_create_user_from_social(provider, social_user_info)
+        user = SocialAuthService.get_or_create_user_from_social(
+            provider, social_user_info
+        )
 
         if user.deleted_at or not user.is_active:
             return (False, None, "account_inactive", "비활성 계정")
@@ -363,7 +533,9 @@ def _parse_social_user(provider: str, user_data: dict) -> dict:
 
 
 # ============ Social Link Service ============
-def social_link_service(user: Any, provider: str, token: str) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
+def social_link_service(
+    user: Any, provider: str, token: str
+) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """소셜 계정 연결"""
     try:
         social_user_info = verify_social_token(provider, token)
@@ -376,18 +548,35 @@ def social_link_service(user: Any, provider: str, token: str) -> Tuple[bool, Opt
         return (False, "validation_failed", str(e), status.HTTP_409_CONFLICT)
     except Exception as e:
         logger.exception(f"Social link error: {str(e)}")
-        return (False, "internal_error", "계정 연결 중 오류가 발생했습니다", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return (
+            False,
+            "internal_error",
+            "계정 연결 중 오류가 발생했습니다",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 # ============ Social Unlink Service ============
-def social_unlink_service(user: Any, provider: str) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
+def social_unlink_service(
+    user: Any, provider: str
+) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """소셜 계정 연결 해제"""
     try:
         SocialAuthService.unlink_social_account(user, provider)
         logger.info(f"Social account unlinked: {provider} - {user.email}")
         return (True, None, None, None)
     except SocialAccount.DoesNotExist:
-        return (False, "social_account_not_found", "연결된 소셜 계정 없음", status.HTTP_404_NOT_FOUND)
+        return (
+            False,
+            "social_account_not_found",
+            "연결된 소셜 계정 없음",
+            status.HTTP_404_NOT_FOUND,
+        )
     except Exception as e:
         logger.exception(f"Social unlink error: {str(e)}")
-        return (False, "internal_error", "계정 연결 해제 중 오류가 발생했습니다", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return (
+            False,
+            "internal_error",
+            "계정 연결 해제 중 오류가 발생했습니다",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )

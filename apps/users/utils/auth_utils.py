@@ -6,7 +6,6 @@ EMAIL_VERIF_RESEND_TTL = 60  # 1분
 EMAIL_VERIF_MAX_PER_HOUR = 5
 
 
-
 def gen_code(n=6):
     """n자리 숫자 인증코드 생성"""
     return "".join(str(random.randint(0, 9)) for _ in range(n))

@@ -1,8 +1,9 @@
 import logging
+
 from django.contrib.auth import get_user_model
 
 from ..models import SocialAccount
-from ..utils.social_auth import verify_social_token, SocialTokenInvalidError
+from ..utils.social_auth import SocialTokenInvalidError, verify_social_token
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

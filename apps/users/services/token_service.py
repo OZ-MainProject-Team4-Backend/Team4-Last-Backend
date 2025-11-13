@@ -73,7 +73,9 @@ def rotate_refresh_token(user, is_auto_login: bool):
         token.is_auto_login = is_auto_login
         token.save(update_fields=["refresh_jwt", "refresh_expires_at", "is_auto_login"])
 
-        logger.info(f"Refresh token rotated for user {user.id} - auto_login: {is_auto_login}")
+        logger.info(
+            f"Refresh token rotated for user {user.id} - auto_login: {is_auto_login}"
+        )
 
         return {
             "refresh": new_refresh_token,

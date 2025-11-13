@@ -1,4 +1,5 @@
 import logging
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import redirect
@@ -40,8 +41,8 @@ from .services.auth_service import (
     verify_email_change_service,
     verify_email_code_service,
 )
-from .services.token_service import create_jwt_pair_for_user
 from .services.social_auth_service import SocialAuthService
+from .services.token_service import create_jwt_pair_for_user
 from .utils.auth_utils import get_user_data
 
 User = get_user_model()
@@ -151,7 +152,9 @@ class EmailVerifyView(APIView):
         email = serializer.validated_data["email"].strip().lower()
         code = serializer.validated_data["code"].strip()
 
-        success, error_code, error_message, http_status = verify_email_code_service(email, code)
+        success, error_code, error_message, http_status = verify_email_code_service(
+            email, code
+        )
         if not success:
             return error_response(error_code, error_message, http_status)
 
@@ -166,7 +169,9 @@ class SignUpView(APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        success, user_data, error_code, error_message, http_status = signup_user_service(serializer.validated_data)
+        success, user_data, error_code, error_message, http_status = (
+            signup_user_service(serializer.validated_data)
+        )
         if not success:
             return error_response(error_code, error_message, http_status)
 
@@ -215,9 +220,20 @@ class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        refresh_token_value = request.data.get("refresh") or request.COOKIES.get("refresh")
+        refresh_token_value = request.data.get("refresh") or request.COOKIES.get(
+            "refresh"
+        )
 
-        success, new_access_token, access_expires_at, new_refresh_token, is_auto_login, error_code, error_message, http_status = refresh_token_service(refresh_token_value)
+        (
+            success,
+            new_access_token,
+            access_expires_at,
+            new_refresh_token,
+            is_auto_login,
+            error_code,
+            error_message,
+            http_status,
+        ) = refresh_token_service(refresh_token_value)
 
         if not success:
             return error_response(error_code, error_message, http_status)
@@ -264,7 +280,9 @@ class ProfileUpdateView(APIView):
 
         new_email = serializer.validated_data.get("email")
         if new_email and new_email.strip().lower() != user.email.lower():
-            success, error_code, error_message, http_status = email_change_service(user, new_email)
+            success, error_code, error_message, http_status = email_change_service(
+                user, new_email
+            )
             if not success:
                 return error_response(error_code, error_message, http_status)
             return success_response("이메일 변경 인증 코드 발송 완료", status_code=200)
@@ -285,7 +303,9 @@ class FavoriteRegionsUpdateView(APIView):
         user = request.user
         regions = serializer.validated_data["favorite_regions"]
 
-        success, updated_regions, error_code, error_message, http_status = update_favorite_regions_service(user, regions)
+        success, updated_regions, error_code, error_message, http_status = (
+            update_favorite_regions_service(user, regions)
+        )
         if not success:
             return error_response(error_code, error_message, http_status)
 
@@ -304,7 +324,9 @@ class EmailChangeVerifyView(APIView):
         new_email = (request.data.get("email") or "").strip().lower()
         code = (request.data.get("code") or "").strip()
 
-        success, user_data, error_code, error_message, http_status = verify_email_change_service(user, new_email, code)
+        success, user_data, error_code, error_message, http_status = (
+            verify_email_change_service(user, new_email, code)
+        )
         if not success:
             return error_response(error_code, error_message, http_status)
 
@@ -363,7 +385,9 @@ class SocialLoginView(APIView):
         is_auto_login = request.data.get("isAutoLogin", False)
         token = serializer.validated_data["token"]
 
-        success, response_data, error_code, error_message, http_status = social_login_service(provider, token, is_auto_login)
+        success, response_data, error_code, error_message, http_status = (
+            social_login_service(provider, token, is_auto_login)
+        )
         if not success:
             return error_response(error_code, error_message, http_status)
 
@@ -387,14 +411,18 @@ class SocialCallbackView(APIView):
         config = settings.SOCIAL_PROVIDERS[provider]
         code = request.GET.get("code")
 
-        success, response_data, error_code, error_message = social_callback_service(provider, code, config)
+        success, response_data, error_code, error_message = social_callback_service(
+            provider, code, config
+        )
         if not success:
             return redirect("http://localhost:3000/login/failed")
 
         response = redirect(
             f"http://localhost:3000/login/success?access={response_data['access']}"
         )
-        set_refresh_token_cookie(response, response_data["refresh"], is_auto_login=False)
+        set_refresh_token_cookie(
+            response, response_data["refresh"], is_auto_login=False
+        )
         return response
 
 
@@ -415,7 +443,9 @@ class SocialLinkView(APIView):
 
         token = serializer.validated_data["token"]
 
-        success, error_code, error_message, http_status = social_link_service(request.user, provider, token)
+        success, error_code, error_message, http_status = social_link_service(
+            request.user, provider, token
+        )
         if not success:
             return error_response(error_code, error_message, http_status)
 
@@ -434,7 +464,9 @@ class SocialUnlinkView(APIView):
                 status.HTTP_400_BAD_REQUEST,
             )
 
-        success, error_code, error_message, http_status = social_unlink_service(request.user, provider)
+        success, error_code, error_message, http_status = social_unlink_service(
+            request.user, provider
+        )
         if not success:
             return error_response(error_code, error_message, http_status)
 
