@@ -78,6 +78,19 @@ class FavoriteLocationViewSet(viewsets.ModelViewSet):
             status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
+    @extend_schema(exclude=True)
+    def retrieve(self, request, *args, **kwargs):
+        """
+        단일 상세 조회 비활성화 — 즐겨찾기는 전체 목록 조회만 허용
+        """
+        return Response(
+            {
+                "error": "method_not_allowed",
+                "message": "단일 즐겨찾기 상세조회는 지원하지 않습니다. 전체 목록을 조회하세요.",
+            },
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
     @transaction.atomic
     def destroy(self, request, *args, **kwargs):
         """
