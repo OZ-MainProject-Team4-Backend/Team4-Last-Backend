@@ -298,3 +298,6 @@ class WeatherViewSet(viewsets.GenericViewSet):
             return Response(
                 {"detail": "history_fetch_failed"}, status=status.HTTP_502_BAD_GATEWAY
             )
+
+
+#
