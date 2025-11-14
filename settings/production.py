@@ -2,6 +2,14 @@ import os
 from datetime import timedelta
 
 from .base import *
+import environ
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env = environ.Env(
+    DEBUG=(bool, False)
+)
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # ============ 기본 설정 ============
 SECRET_KEY = env('DJANGO_SECRET_KEY')
