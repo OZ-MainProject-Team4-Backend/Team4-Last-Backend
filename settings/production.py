@@ -2,14 +2,16 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from .base import *
 import environ
+
+from .base import *
 
 # ============ BASE_DIR 설정 (Path로 통일) ============
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(DEBUG=(bool, False))
 environ.Env.read_env(os.path.join(BASE_DIR, "env/.env.prod"))
+
 
 # ============ 기본 설정 ============
 SECRET_KEY = env(
