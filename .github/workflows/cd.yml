@@ -9,14 +9,31 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: EC2 ssh connection and deploy
+      - uses: actions/checkout@v4
+
+      - name: EC2 SSH connection and deploy
         uses: appleboy/ssh-action@master
         with:
-          host: ec2-3-39-190-109.ap-northeast-2.compute.amazonaws.com
-          username: ubuntu
-          key: |
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          key_type: ed25519
           script: |
-            cd /your_project_path
-            docker-compose build
-            docker-compose down
-            docker-compose up -d
+            cd ~/Team4-Last-Backend
+            git pull origin main
+            
+            # 환경변수 설정
+            export DJANGO_SETTINGS_MODULE=settings.production
+            export POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
+            export POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            export POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            export DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+            
+            # 서버 재시작 (gunicorn)
+            pkill -f gunicorn || true
+            source ~/.pyenv/versions/aws/bin/activate
+            python manage.py migrate
+            gunicorn settings.wsgi:application --bind 0.0.0.0:8000 --workers 3 --daemon
+            
+            echo "✅ Deployment completed successfully!"
