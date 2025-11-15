@@ -25,10 +25,10 @@ ALLOWED_HOSTS = env.list(
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("POSTGRES_DB"),
-        "USER": env("POSTGRES_USER"),
-        "PASSWORD": env("POSTGRES_PASSWORD"),
-        "HOST": env("POSTGRES_HOST"),
+        "NAME": env("POSTGRES_DB",default="team4-main"),
+        "USER": env("POSTGRES_USER",default="minsoo"),
+        "PASSWORD": env("POSTGRES_PASSWORD",default="minsoo8070"),
+        "HOST": env("POSTGRES_HOST",default="team4-main.czoe0ewi2efo.ap-northeast-2.rds.amazonaws.com"),
         "PORT": "5432",
     }
 }
