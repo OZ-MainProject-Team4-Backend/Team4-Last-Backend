@@ -1,5 +1,4 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework import status, views
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,12 +12,9 @@ from .services.recommend_service import create_by_coords, create_by_location
 
 
 class OutfitRecommendView(APIView):
-
     @extend_schema(
         summary="복장 추천",
-        description=(
-            "latitude/longitude 또는 city/district 중 하나만 전달하면 추천 결과를 반환합니다."
-        ),
+        description="latitude/longitude 또는 city/district 중 하나만 전달하면 추천 결과를 반환합니다.",
         responses={200: OutfitRecommendSerializer},
         tags=["Recommend"],
     )
@@ -36,6 +32,4 @@ class OutfitRecommendView(APIView):
             result = create_by_location(request.user, city, district)
             return Response(OutfitRecommendSerializer(result).data)
 
-        raise ValidationError(
-            "latitude+longitude 또는 city+district 중 하나를 제공해야 합니다."
-        )
+        raise ValidationError("latitude+longitude 또는 city+district 중 하나를 제공해야 합니다.")

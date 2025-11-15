@@ -1,22 +1,20 @@
 from __future__ import annotations
-
+from typing import Tuple, Optional
 from datetime import datetime
-from typing import Optional, Tuple
-
+from django.db import transaction
+from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 
+from apps.weather.models import WeatherLocation, WeatherData
 from apps.recommend.models import OutfitRecommendation
 from apps.weather.models import WeatherData, WeatherLocation
 from apps.weather.services.openweather import get_current
 
 User = get_user_model()
 
-
-def _recommend_by_condition(
-    cond: str,
-) -> Tuple[Tuple[str, str, str], str] | Tuple[None, None]:
+def _recommend_by_condition(cond: str) -> Tuple[Tuple[str, str, str], str] | Tuple[None, None]:
     cond = cond.lower()
 
     if cond in ["snow", "눈"]:
@@ -142,7 +140,6 @@ def _recommend_by_temperature(temp: float) -> Tuple[Tuple[str, str, str], str]:
         f"{temp}°C 이상의 무더운 날씨엔 시원한 소재의 옷을 추천드려요.",
     )
 
-
 def _save_weather(lat: float, lon: float) -> WeatherData:
     """OpenWeather 데이터를 WeatherData로 저장"""
     w = get_current(lat, lon)
@@ -174,7 +171,6 @@ def _save_weather(lat: float, lon: float) -> WeatherData:
         raw_payload=w.get("raw", {}),
     )
 
-
 def _generate(lat: float, lon: float) -> dict[str, str]:
     """추천 생성 로직"""
     weather = get_current(lat, lon)
@@ -193,16 +189,13 @@ def _generate(lat: float, lon: float) -> dict[str, str]:
         "weather": weather,
     }
 
-
 @transaction.atomic
 def create_by_coords(user: User, lat: float, lon: float) -> OutfitRecommendation:
     """좌표 기반 추천"""
     data = _generate(lat, lon)
     weather_data = _save_weather(lat, lon)
 
-    user_obj: Optional[User] = (
-        user if getattr(user, "is_authenticated", False) else None
-    )
+    user_obj: Optional[User] = user if getattr(user, "is_authenticated", False) else None
 
     return OutfitRecommendation.objects.create(
         user=user_obj,
@@ -228,9 +221,7 @@ def create_by_location(user: User, city: str, district: str) -> OutfitRecommenda
     weather_data.location = loc
     weather_data.save(update_fields=["location"])
 
-    user_obj: Optional[User] = (
-        user if getattr(user, "is_authenticated", False) else None
-    )
+    user_obj: Optional[User] = user if getattr(user, "is_authenticated", False) else None
 
     return OutfitRecommendation.objects.create(
         user=user_obj,
@@ -240,6 +231,5 @@ def create_by_location(user: User, city: str, district: str) -> OutfitRecommenda
         rec_3=data["rec_3"],
         explanation=data["explanation"],
     )
-
 
 generate_outfit_recommend = _generate
