@@ -1,5 +1,5 @@
 #!/bin/bash
-export DJANGO_SETTINGS_MODULE=settings.base
+export DJANGO_SETTINGS_MODULE=settings.production
 set -e
 
 until nc -z last-AWS-db 5432; do
@@ -19,5 +19,5 @@ python manage.py makemigrations --check --noinput || echo "No changes"
 python manage.py migrate
 
 # Gunicorn 실행
-gunicorn settings.wsgi:application --bind 0.0.0.0:8000 --workers 2
+gunicorn settings.wsgi:application --bind 0.0.0.0:8000 --workers 3
 
