@@ -24,7 +24,9 @@ OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # ============ 기본값 설정 (mypy 및 개발용) ============
-SECRET_KEY = env("DJANGO_SECRET_KEY", default='django-insecure-key-for-development-and-mypy')
+SECRET_KEY = env(
+    "DJANGO_SECRET_KEY", default='django-insecure-key-for-development-and-mypy'
+)
 
 # DEBUG, ALLOWED_HOSTS are defined in development.py or production.py
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
@@ -115,9 +117,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # ==================== Redis Cache 설정 ====================
-CACHES = {
-    "default": env.cache("CACHE_URL", default="locmemcache://")
-}
+CACHES = {"default": env.cache("CACHE_URL", default="locmemcache://")}
 
 # ==================== 이메일 설정 ====================
 EMAIL_VERIF_CODE_TTL = 300  # 5분
@@ -235,11 +235,13 @@ SOCIAL_PROVIDERS = {
     },
 }
 
+
 # ==================== OpenWeather 설정 ====================
 class OpenWeatherConf(TypedDict):
     BASE_URL: str
     API_KEY: str
     TIMEOUT: int
+
 
 OPENWEATHER: OpenWeatherConf = {
     "BASE_URL": "https://api.openweathermap.org",
