@@ -1,18 +1,20 @@
 import os
 from datetime import timedelta
+from pathlib import Path
 
 from .base import *
 import environ
-import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# ============ BASE_DIR 설정 (Path로 통일) ============
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 env = environ.Env(
     DEBUG=(bool, False)
 )
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+environ.Env.read_env(os.path.join(BASE_DIR, 'env/.env'))
 
 # ============ 기본 설정 ============
-SECRET_KEY = env('DJANGO_SECRET_KEY')
+SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-production-key')
 DEBUG = False
 ALLOWED_HOSTS = env.list(
     'DJANGO_ALLOWED_HOSTS', default=['team4.p-e.kr', 'localhost', '127.0.0.1']
@@ -22,10 +24,10 @@ ALLOWED_HOSTS = env.list(
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('POSTGRES_DB'),
-        'USER': env('POSTGRES_USER'),
-        'PASSWORD': env('POSTGRES_PASSWORD'),
-        'HOST': env('POSTGRES_HOST'),
+        'NAME': env('POSTGRES_DB', default='postgres'),
+        'USER': env('POSTGRES_USER', default='postgres'),
+        'PASSWORD': env('POSTGRES_PASSWORD', default=''),
+        'HOST': env('POSTGRES_HOST', default='localhost'),
         'PORT': env('POSTGRES_PORT', default='5432'),
         'ATOMIC_REQUESTS': True,
         'CONN_MAX_AGE': 600,
@@ -50,9 +52,9 @@ CACHES = {
 }
 
 # ============ S3 설정 ============
-AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='')
 AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='ap-northeast-2')
 AWS_S3_CUSTOM_DOMAIN = (
     f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
@@ -78,14 +80,14 @@ EMAIL_HOST = env('EMAIL_HOST', default='smtp.naver.com')
 EMAIL_PORT = env('EMAIL_PORT', default=465, cast=int)
 EMAIL_USE_SSL = env('EMAIL_USE_SSL', default=True, cast=bool)
 EMAIL_USE_TLS = env('EMAIL_USE_TLS', default=False, cast=bool)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # ============ 소셜 로그인 설정 ============
-SOCIAL_PROVIDERS['naver']['redirect_uri'] = env('NAVER_REDIRECT_URI')
-SOCIAL_PROVIDERS['google']['redirect_uri'] = env('GOOGLE_REDIRECT_URI')
-SOCIAL_PROVIDERS['kakao']['redirect_uri'] = env('KAKAO_REDIRECT_URI')
+SOCIAL_PROVIDERS['naver']['redirect_uri'] = env('NAVER_REDIRECT_URI', default='')
+SOCIAL_PROVIDERS['google']['redirect_uri'] = env('GOOGLE_REDIRECT_URI', default='')
+SOCIAL_PROVIDERS['kakao']['redirect_uri'] = env('KAKAO_REDIRECT_URI', default='')
 
 # ============ CORS 설정 ============
 CORS_ALLOWED_ORIGINS = env.list(
