@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
     DEBUG=(bool, False)
 )
-environ.Env.read_env(os.path.join(BASE_DIR, 'env/.env'))
+environ.Env.read_env(os.path.join(BASE_DIR, 'env/.env.prod'))
 
 # ============ 기본 설정 ============
 SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-production-key')
@@ -24,13 +24,11 @@ ALLOWED_HOSTS = env.list(
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('POSTGRES_DB', default='postgres'),
-        'USER': env('POSTGRES_USER', default='postgres'),
-        'PASSWORD': env('POSTGRES_PASSWORD', default=''),
-        'HOST': env('POSTGRES_HOST', default='localhost'),
-        'PORT': env('POSTGRES_PORT', default='5432'),
-        'ATOMIC_REQUESTS': True,
-        'CONN_MAX_AGE': 600,
+        'NAME': env('POSTGRES_DB'),
+        'USER': env('POSTGRES_USER'),
+        'PASSWORD': env('POSTGRES_PASSWORD'),
+        'HOST': env('POSTGRES_HOST'),
+        'PORT': '5432',
     }
 }
 

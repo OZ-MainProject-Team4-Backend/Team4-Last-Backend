@@ -1,0 +1,20 @@
+services:
+  aws-web:
+    build: .
+    container_name: last-AWS-web
+    restart: always
+    env_file:
+      - ./env/.env.prod  # RDS 정보 포함
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    volumes:
+      - .:/last-AWS
+    environment:
+      # Redis URL 재정의 (컨테이너 내부에서)
+      CACHE_URL: redis://redis:6379/1
+
+  redis:
+    image: redis:7
+    restart: unless-stopped

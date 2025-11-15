@@ -173,7 +173,19 @@ def signup_user_service(
             status.HTTP_400_BAD_REQUEST,
         )
 
-    user = User.objects.create_user(**validated_data)
+    # password_confirm, age 제거 후 사용자 생성
+    user_data = {
+        'email': validated_data.get('email'),
+        'password': validated_data.get('password'),
+        'nickname': validated_data.get('nickname'),
+        'name': validated_data.get('name'),
+        'age_group': validated_data.get('age_group'),
+        'gender': validated_data.get('gender'),
+    }
+    # None 값 제거
+    user_data = {k: v for k, v in user_data.items() if v is not None}
+
+    user = User.objects.create_user(**user_data)
     user.email_verified = True
     user.save(update_fields=["email_verified"])
     cache.delete(key_preverified(email))
