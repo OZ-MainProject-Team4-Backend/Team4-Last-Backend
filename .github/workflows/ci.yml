@@ -14,7 +14,7 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: last_aws
+          POSTGRES_DB: last-AWS
           POSTGRES_USER: admin
           POSTGRES_PASSWORD: "1234"
         ports:
@@ -90,7 +90,7 @@ jobs:
           fi
 
       - name: 🧠 Type Check (mypy)
-        run: uv run mypy .
+        run: uv run --active mypy .
 
       - name: 🔎 Check Django Database Connection
         run: uv run python manage.py check --database default
