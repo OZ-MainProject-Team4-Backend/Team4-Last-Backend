@@ -121,9 +121,9 @@ class SignupSerializer(serializers.ModelSerializer):
 
         # 대문자, 소문자, 숫자 포함 확인
         if (
-                not any(c.islower() for c in pw)
-                or not any(c.isupper() for c in pw)
-                or not any(c.isdigit() for c in pw)
+            not any(c.islower() for c in pw)
+            or not any(c.isupper() for c in pw)
+            or not any(c.isdigit() for c in pw)
         ):
             raise serializers.ValidationError(
                 {"password": "비밀번호는 영어 대문자, 소문자, 숫자를 조합해야 합니다."}
@@ -138,20 +138,20 @@ class SignupSerializer(serializers.ModelSerializer):
         # 이메일 중복 확인
         email = data.get("email")
         if (
-                email
-                and User.objects.filter(
-            email__iexact=email, deleted_at__isnull=True
-        ).exists()
+            email
+            and User.objects.filter(
+                email__iexact=email, deleted_at__isnull=True
+            ).exists()
         ):
             raise serializers.ValidationError({"email": "이미 사용중인 이메일입니다."})
 
         # 닉네임 중복 확인
         nickname = data.get("nickname")
         if (
-                nickname
-                and User.objects.filter(
-            nickname__iexact=nickname, deleted_at__isnull=True
-        ).exists()
+            nickname
+            and User.objects.filter(
+                nickname__iexact=nickname, deleted_at__isnull=True
+            ).exists()
         ):
             raise serializers.ValidationError(
                 {"nickname": "이미 사용중인 닉네임입니다."}
