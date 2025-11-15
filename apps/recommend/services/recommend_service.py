@@ -1,11 +1,15 @@
-from typing import Tuple
+from __future__ import annotations
+from typing import Tuple, Optional
+from datetime import datetime
 from django.db import transaction
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth import get_user_model
 
 from apps.weather.models import WeatherLocation, WeatherData
 from apps.recommend.models import OutfitRecommendation
 from apps.weather.services.openweather import get_current
 
+User = get_user_model()
 
 def _recommend_by_condition(cond: str) -> Tuple[Tuple[str, str, str], str] | Tuple[None, None]:
     cond = cond.lower()
@@ -133,17 +137,28 @@ def _recommend_by_temperature(temp: float) -> Tuple[Tuple[str, str, str], str]:
         f"{temp}°C 이상의 무더운 날씨엔 시원한 소재의 옷을 추천드려요.",
     )
 
-
 def _save_weather(lat: float, lon: float) -> WeatherData:
-    """OpenWeather 데이터를 WeatherData로 저장함"""
+    """OpenWeather 데이터를 WeatherData로 저장"""
     w = get_current(lat, lon)
+
+    # timestamp → datetime 변환
+    base_time = (
+        datetime.fromtimestamp(w["base_time"])
+        if isinstance(w["base_time"], (int, float))
+        else w["base_time"]
+    )
+    valid_time = (
+        datetime.fromtimestamp(w.get("valid_time", w["base_time"]))
+        if isinstance(w.get("valid_time", 0), (int, float))
+        else w.get("valid_time", base_time)
+    )
 
     return WeatherData.objects.create(
         location=None,
-        base_time=w["base_time"],
-        valid_time=w["base_time"],
-        temperature=w["temperature"],
-        feels_like=w.get("feels_like"),
+        base_time=base_time,
+        valid_time=valid_time,
+        temperature=w.get("temperature", 0.0),
+        feels_like=w.get("feels_like") or 0.0,
         humidity=w.get("humidity"),
         rain_probability=None,
         rain_volume=w.get("rain_volume"),
@@ -152,7 +167,6 @@ def _save_weather(lat: float, lon: float) -> WeatherData:
         icon=w.get("icon"),
         raw_payload=w.get("raw", {}),
     )
-
 
 def _generate(lat: float, lon: float) -> dict:
     """추천 생성 로직"""
@@ -172,16 +186,16 @@ def _generate(lat: float, lon: float) -> dict:
         "weather": weather,
     }
 
-
 @transaction.atomic
-def create_by_coords(user, lat: float, lon: float) -> OutfitRecommendation:
+def create_by_coords(user: User, lat: float, lon: float) -> OutfitRecommendation:
     """좌표 기반 추천"""
     data = _generate(lat, lon)
-
     weather_data = _save_weather(lat, lon)
 
+    user_obj: Optional[User] = user if getattr(user, "is_authenticated", False) else None
+
     return OutfitRecommendation.objects.create(
-        user=user if user.is_authenticated else None,
+        user=user_obj,
         weather_data=weather_data,
         rec_1=data["rec_1"],
         rec_2=data["rec_2"],
@@ -191,7 +205,7 @@ def create_by_coords(user, lat: float, lon: float) -> OutfitRecommendation:
 
 
 @transaction.atomic
-def create_by_location(user, city: str, district: str) -> OutfitRecommendation:
+def create_by_location(user: User, city: str, district: str) -> OutfitRecommendation:
     """지역 기반 추천"""
     try:
         loc = WeatherLocation.objects.get(city=city, district=district)
@@ -204,11 +218,15 @@ def create_by_location(user, city: str, district: str) -> OutfitRecommendation:
     weather_data.location = loc
     weather_data.save(update_fields=["location"])
 
+    user_obj: Optional[User] = user if getattr(user, "is_authenticated", False) else None
+
     return OutfitRecommendation.objects.create(
-        user=user if user.is_authenticated else None,
+        user=user_obj,
         weather_data=weather_data,
         rec_1=data["rec_1"],
         rec_2=data["rec_2"],
         rec_3=data["rec_3"],
         explanation=data["explanation"],
     )
+
+generate_outfit_recommend = _generate
