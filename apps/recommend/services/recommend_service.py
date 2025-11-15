@@ -168,7 +168,7 @@ def _save_weather(lat: float, lon: float) -> WeatherData:
         raw_payload=w.get("raw", {}),
     )
 
-def _generate(lat: float, lon: float) -> dict:
+def _generate(lat: float, lon: float) -> dict[str, str]:
     """추천 생성 로직"""
     weather = get_current(lat, lon)
     temp = weather.get("temperature", 20.0)
