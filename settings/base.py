@@ -42,7 +42,7 @@ DATABASES = {
         "NAME": env("POSTGRES_DB", default="postgres"),
         "USER": env("POSTGRES_USER", default="postgres"),
         "PASSWORD": env("POSTGRES_PASSWORD", default="password"),
-        "HOST": env("POSTGRES_HOST", default="localhost"),
+        "HOST": env("POSTGRES_HOST", default="db"),
         "PORT": env("POSTGRES_PORT", default="5432"),
     }
 }
