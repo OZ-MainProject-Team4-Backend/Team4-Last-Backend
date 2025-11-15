@@ -8,27 +8,6 @@ from rest_framework import serializers
 from .models import SocialAccount, Token, User
 
 
-class NicknameValidateSerializer(serializers.Serializer):
-    nickname = serializers.CharField(
-        max_length=20,
-        validators=[
-            RegexValidator(
-                regex=r'^[a-zA-Z0-9가-힣_]+$',
-                message="닉네임은 영문, 숫자, 한글, 밑줄만 가능합니다.",
-            )
-        ],
-    )
-
-
-class EmailSendSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-
-
-class EmailVerifySerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    code = serializers.CharField(max_length=64)
-
-
 def map_age_to_group(age_value: Optional[str]) -> Optional[str]:
     if not age_value:
         return None
@@ -73,6 +52,27 @@ def map_gender(gender_value: Optional[str]) -> Optional[str]:
     if v in ("male", "man", "남성", "m"):
         return "Man"
     return "0"
+
+
+class NicknameValidateSerializer(serializers.Serializer):
+    nickname = serializers.CharField(
+        max_length=20,
+        validators=[
+            RegexValidator(
+                regex=r'^[a-zA-Z0-9가-힣_]+$',
+                message="닉네임은 영문, 숫자, 한글, 밑줄만 가능합니다.",
+            )
+        ],
+    )
+
+
+class EmailSendSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class EmailVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=64)
 
 
 class SignupSerializer(serializers.ModelSerializer):
@@ -121,9 +121,9 @@ class SignupSerializer(serializers.ModelSerializer):
 
         # 대문자, 소문자, 숫자 포함 확인
         if (
-            not any(c.islower() for c in pw)
-            or not any(c.isupper() for c in pw)
-            or not any(c.isdigit() for c in pw)
+                not any(c.islower() for c in pw)
+                or not any(c.isupper() for c in pw)
+                or not any(c.isdigit() for c in pw)
         ):
             raise serializers.ValidationError(
                 {"password": "비밀번호는 영어 대문자, 소문자, 숫자를 조합해야 합니다."}
@@ -138,20 +138,20 @@ class SignupSerializer(serializers.ModelSerializer):
         # 이메일 중복 확인
         email = data.get("email")
         if (
-            email
-            and User.objects.filter(
-                email__iexact=email, deleted_at__isnull=True
-            ).exists()
+                email
+                and User.objects.filter(
+            email__iexact=email, deleted_at__isnull=True
+        ).exists()
         ):
             raise serializers.ValidationError({"email": "이미 사용중인 이메일입니다."})
 
         # 닉네임 중복 확인
         nickname = data.get("nickname")
         if (
-            nickname
-            and User.objects.filter(
-                nickname__iexact=nickname, deleted_at__isnull=True
-            ).exists()
+                nickname
+                and User.objects.filter(
+            nickname__iexact=nickname, deleted_at__isnull=True
+        ).exists()
         ):
             raise serializers.ValidationError(
                 {"nickname": "이미 사용중인 닉네임입니다."}
@@ -160,13 +160,19 @@ class SignupSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data: Dict) -> User:
+        # password_confirm 제거
         validated_data.pop("password_confirm", None)
+
+        # password와 age, gender 추출 및 제거
         raw_pw = validated_data.pop("password")
         raw_age = validated_data.pop("age", None)
         raw_gender = validated_data.pop("gender", None)
+
+        # age와 gender 매핑
         age_group = map_age_to_group(raw_age)
         gender_choice = map_gender(raw_gender)
 
+        # 사용자 생성 데이터 구성
         extra = {
             "nickname": validated_data.get("nickname"),
             "name": validated_data.get("name"),
