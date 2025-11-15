@@ -32,4 +32,6 @@ class OutfitRecommendView(APIView):
             result = create_by_location(request.user, city, district)
             return Response(OutfitRecommendSerializer(result).data)
 
-        raise ValidationError("latitude+longitude 또는 city+district 중 하나를 제공해야 합니다.")
+        raise ValidationError(
+            "latitude+longitude 또는 city+district 중 하나를 제공해야 합니다."
+        )
