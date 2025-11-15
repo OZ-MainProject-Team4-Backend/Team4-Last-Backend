@@ -12,11 +12,11 @@ jobs:
 
     services:
       postgres:
-        image: postgres:13
+        image: postgres:17
         env:
           POSTGRES_DB: last-AWS
           POSTGRES_USER: admin
-          POSTGRES_PASSWORD: 1234
+          POSTGRES_PASSWORD: "1234"
         ports:
           - 5432:5432
         options: >-
@@ -24,6 +24,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
+    env:
+      DJANGO_SETTINGS_MODULE: settings.production
+      POSTGRES_DB: last_aws
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: "1234"
+      POSTGRES_HOST: localhost
+      DATABASE_URL: postgres://admin:1234@localhost:5432/last_aws
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +93,4 @@ jobs:
         run: uv run --active mypy .
 
       - name: 🔎 Check Django Database Connection
-        env:
-          DATABASE_URL: postgres://admin:1234@localhost:5432/last-AWS
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: uv run python manage.py check --database default

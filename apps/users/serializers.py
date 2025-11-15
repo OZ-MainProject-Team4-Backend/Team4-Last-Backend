@@ -8,27 +8,6 @@ from rest_framework import serializers
 from .models import SocialAccount, Token, User
 
 
-class NicknameValidateSerializer(serializers.Serializer):
-    nickname = serializers.CharField(
-        max_length=20,
-        validators=[
-            RegexValidator(
-                regex=r'^[a-zA-Z0-9가-힣_]+$',
-                message="닉네임은 영문, 숫자, 한글, 밑줄만 가능합니다.",
-            )
-        ],
-    )
-
-
-class EmailSendSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-
-
-class EmailVerifySerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    code = serializers.CharField(max_length=64)
-
-
 def map_age_to_group(age_value: Optional[str]) -> Optional[str]:
     if not age_value:
         return None
@@ -73,6 +52,27 @@ def map_gender(gender_value: Optional[str]) -> Optional[str]:
     if v in ("male", "man", "남성", "m"):
         return "Man"
     return "0"
+
+
+class NicknameValidateSerializer(serializers.Serializer):
+    nickname = serializers.CharField(
+        max_length=20,
+        validators=[
+            RegexValidator(
+                regex=r'^[a-zA-Z0-9가-힣_]+$',
+                message="닉네임은 영문, 숫자, 한글, 밑줄만 가능합니다.",
+            )
+        ],
+    )
+
+
+class EmailSendSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class EmailVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=64)
 
 
 class SignupSerializer(serializers.ModelSerializer):
@@ -160,13 +160,19 @@ class SignupSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data: Dict) -> User:
+        # password_confirm 제거
         validated_data.pop("password_confirm", None)
+
+        # password와 age, gender 추출 및 제거
         raw_pw = validated_data.pop("password")
         raw_age = validated_data.pop("age", None)
         raw_gender = validated_data.pop("gender", None)
+
+        # age와 gender 매핑
         age_group = map_age_to_group(raw_age)
         gender_choice = map_gender(raw_gender)
 
+        # 사용자 생성 데이터 구성
         extra = {
             "nickname": validated_data.get("nickname"),
             "name": validated_data.get("name"),
