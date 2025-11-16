@@ -39,14 +39,13 @@ SECURE_COOKIES = True
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("POSTGRES_DB", default="postgres"),
-        "USER": env("POSTGRES_USER", default="postgres"),
-        "PASSWORD": env("POSTGRES_PASSWORD", default="password"),
-        "HOST": env("POSTGRES_HOST", default="db"),
-        "PORT": env("POSTGRES_PORT", default="5432"),
+        "NAME": env("POSTGRES_DB", default="last_aws"),
+        "USER": env("POSTGRES_USER", default="admin"),
+        "PASSWORD": env("POSTGRES_PASSWORD", default="1234"),
+        "HOST": env("POSTGRES_HOST", default="localhost"),  # ← localhost로!
+        "PORT": "5432",
     }
 }
-
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
