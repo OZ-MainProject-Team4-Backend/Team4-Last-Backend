@@ -19,10 +19,12 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - last-AWS-db
       - redis
     volumes:
       - .:/last-AWS
+    environment:
+      POSTGRES_INITDB_ARGS: "-U admin -c CREATE DATABASE last_aws;"
+      DJANGO_SETTINGS_MODULE: settings.base
 
   redis:
     image: redis:7
