@@ -22,8 +22,8 @@ class OutfitRecommendByCoordsView(APIView):
         ser = CoordsRecommendSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
 
-        lat = ser.validated_data["lat"]
-        lon = ser.validated_data["lon"]
+        lat = ser.validated_data["latitude"]
+        lon = ser.validated_data["longitude"]
 
         result = create_by_coords(request.user, lat, lon)
         return Response(OutfitRecommendSerializer(result).data)
