@@ -23,6 +23,6 @@ def pick_model_setting(
     qs = qs.annotate(
         temp_span=F("temperature_max") - F("temperature_min"),
         humidity_span=F("humidity_max") - F("humidity_min"),
-    ).order_by("temperature_span", "humidity_span", "id")
+    ).order_by("temp_span", "humidity_span", "id")
 
     return qs.first()

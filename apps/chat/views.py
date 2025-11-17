@@ -1,12 +1,16 @@
+import logging
 import uuid
 
-from rest_framework import generics, mixins, permissions, status, viewsets
+from django.utils import timezone
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.chat.models import AiChatLogs
 from apps.chat.serializers import AiChatLogReadSerializer, ChatSendSerializer
 from apps.chat.services.chat import chat_and_log
+
+logger = logging.getLogger(__name__)
 
 
 class AiChatViewSet(viewsets.ViewSet):
@@ -17,25 +21,47 @@ class AiChatViewSet(viewsets.ViewSet):
         ser = ChatSendSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
 
-        session_id = ser.validated_data.get("session_id") or uuid.uuid4()
         user = request.user if request.user.is_authenticated else None
         weather = ser.validated_data.get("weather")
         profile = ser.validated_data.get("profile")
+        today = timezone.localdate()
+
+        session_id = ser.validated_data.get("session_id")
+
+        if user and not session_id:
+            existing_sid = (
+                AiChatLogs.objects.filter(user=user, created_at__date=today)
+                .order_by("-created_at")
+                .values_list("session_id", flat=True)
+                .first()
+            )
+            if existing_sid:
+                session_id = str(existing_sid)
+
+        if not session_id:
+            session_id = str(uuid.uuid4())
+
+        text = ser.validated_data.get("detail") or ser.validated_data.get("message")
 
         try:
             result = chat_and_log(
                 user=user,
                 session_id=session_id,
-                user_message=ser.validated_data["message"],
+                user_message=text,
                 weather=weather,
                 profile=profile,
                 model_name="gpt-4o",
             )
             return Response(
-                {"response": result["answer"], "session_id": str(session_id)},
+                {
+                    "response": result["answer"],
+                    "session_id": str(session_id),
+                    "created_at": timezone.localtime(result["created_at"]).isoformat(),
+                },
                 status=status.HTTP_200_OK,
             )
         except Exception:
+            logger.exception("chat send failed")
             return Response(
                 {"error": "AI 대화 실패", "error_status": "chat_failed"},
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -43,21 +69,23 @@ class AiChatViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["GET"], url_path="session")
     def session(self, request):
-        sid = request.query_params.get("session_id")
+        sid_param = request.query_params.get("session_id")
         limit = int(request.query_params.get("limit") or 20)
+        before_id = request.query_params.get("before_id")
+        today = timezone.localdate()
 
-        if not sid and not request.user.is_authenticated:
-            return Response(
-                {"error": "세션 없음", "error_status": "session_empty"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        user = request.user if request.user.is_authenticated else None
 
-        qs = AiChatLogs.objects.all()
-        if sid:
-            qs = qs.filter(session_id=sid)
+        if sid_param:
+            session_id = sid_param
         else:
+            if not user:
+                return Response(
+                    {"error": "세션 없음", "error_status": "session_empty"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             last_sid = (
-                AiChatLogs.objects.filter(user=request.user)
+                AiChatLogs.objects.filter(user=user, created_at__date=today)
                 .order_by("-created_at")
                 .values_list("session_id", flat=True)
                 .first()
@@ -67,9 +95,21 @@ class AiChatViewSet(viewsets.ViewSet):
                     {"error": "세션 없음", "error_status": "session_empty"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            qs = qs.filter(session_id=last_sid)
+            session_id = str(last_sid)
 
-        logs = list(qs.order_by("created_at").values_list("user_question", "ai_answer"))
+        qs = AiChatLogs.objects.filter(
+            session_id=session_id,
+            created_at__date=today,
+        )
+
+        if before_id:
+            qs = qs.filter(id__lt=before_id)
+
+        qs = qs.order_by("-created_at")[:limit]
+        qs = qs.order_by("created_at")
+
+        logs = list(qs.values("id", "user_question", "ai_answer"))
+
         if not logs:
             return Response(
                 {"error": "세션 없음", "error_status": "session_empty"},
@@ -77,11 +117,26 @@ class AiChatViewSet(viewsets.ViewSet):
             )
 
         out = []
-        for uq, aa in logs[-limit:]:
-            out.append({"role": "user", "text": uq})
-            out.append({"role": "ai", "text": aa})
+        for row in logs:
+            msg_id = row["id"]
+            out.append({"id": msg_id, "role": "user", "text": row["user_question"]})
+            out.append({"id": msg_id, "role": "ai", "text": row["ai_answer"]})
 
-        return Response(out, status=status.HTTP_200_OK)
+        oldest_id = logs[0]["id"]
+        has_more = AiChatLogs.objects.filter(
+            session_id=session_id,
+            created_at__date=today,
+            id__lt=oldest_id,
+        ).exists()
+
+        return Response(
+            {
+                "messages": out,
+                "next_before_id": oldest_id if has_more else None,
+                "has_more": has_more,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class ChatLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -90,10 +145,16 @@ class ChatLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         qs = AiChatLogs.objects.all().order_by("-created_at")
+
         sid = self.request.query_params.get("session_id")
         if sid:
             qs = qs.filter(session_id=sid)
+
         user = self.request.user if self.request.user.is_authenticated else None
         if user:
             qs = qs.filter(user=user)
+
+        today = timezone.localdate()
+        qs = qs.filter(created_at__date=today)
+
         return qs
