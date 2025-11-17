@@ -173,7 +173,6 @@ def signup_user_service(
             status.HTTP_400_BAD_REQUEST,
         )
 
-    # password_confirm, age 제거 후 사용자 생성
     user_data = {
         'email': validated_data.get('email'),
         'password': validated_data.get('password'),
@@ -182,7 +181,6 @@ def signup_user_service(
         'age_group': validated_data.get('age_group'),
         'gender': validated_data.get('gender'),
     }
-    # None 값 제거
     user_data = {k: v for k, v in user_data.items() if v is not None}
 
     user = User.objects.create_user(**user_data)
@@ -199,6 +197,7 @@ def handle_login(user: Any, is_auto_login: bool) -> dict:
     tokens = create_jwt_pair_for_user(user, is_auto_login)
 
     response_data = {
+        "user": get_user_data(user),
         "access": tokens["access"],
         "access_expires_at": tokens["access_expires_at"],
         "is_auto_login": is_auto_login,
@@ -414,8 +413,14 @@ def delete_user_service(
 # ============ Social Login Service ============
 def social_login_service(
     provider: str, token: str, is_auto_login: bool
-) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
-    """소셜 로그인"""
+) -> Tuple[
+    bool, Optional[dict], Optional[str], Optional[str], Optional[str], Optional[int]
+]:
+    """소셜 로그인
+
+    Returns:
+        success, response_data, refresh_token, error_code, error_message, http_status
+    """
     try:
         social_user_info = verify_social_token(provider, token)
         user = SocialAuthService.get_or_create_user_from_social(
@@ -425,6 +430,7 @@ def social_login_service(
         if user.deleted_at or not user.is_active:
             return (
                 False,
+                None,
                 None,
                 "account_inactive",
                 "비활성 계정",
@@ -439,14 +445,14 @@ def social_login_service(
             "access": tokens["access"],
             "access_expires_at": tokens["access_expires_at"],
             "is_auto_login": is_auto_login,
-            "refresh": tokens["refresh"],
         }
 
-        return (True, response_data, None, None, status.HTTP_200_OK)
+        return (True, response_data, tokens["refresh"], None, None, status.HTTP_200_OK)
 
     except SocialTokenInvalidError:
         return (
             False,
+            None,
             None,
             "token_invalid",
             "소셜 인증 실패",
@@ -456,6 +462,7 @@ def social_login_service(
         logger.exception(f"Social login error: {str(e)}")
         return (
             False,
+            None,
             None,
             "internal_error",
             "로그인 처리 중 오류가 발생했습니다",
