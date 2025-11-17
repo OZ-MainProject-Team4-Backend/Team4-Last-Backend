@@ -9,7 +9,7 @@ from openai.types.chat import ChatCompletionMessageParam
 
 from apps.chat.models import AiChatLogs, AiModelSettings
 from apps.chat.services.model_picker import pick_model_setting
-from apps.recommend.services.recommend_service import _build_outfit_by_temp_and_cond
+from apps.recommend.services.recommend_service import build_outfit_by_temp_and_cond
 
 logger = logging.getLogger(__name__)
 client = OpenAI()
@@ -30,16 +30,23 @@ def chat_and_log(
     model_name: str = "gpt-4o",
 ) -> dict:
 
+    # -----------------------------
+    # 1) 날씨 정보 정리
+    # -----------------------------
     temp: Optional[float] = (
         (weather.get("feels_like") or weather.get("temperature")) if weather else None
     )
     humi: Optional[int] = weather.get("humidity") if weather else None
     cond: Optional[str] = weather.get("condition") if weather else None
 
+    # 모델 설정값 추출
     setting: Optional[AiModelSettings] = None
     if temp is not None:
         setting = pick_model_setting(temp, humi, cond)
 
+    # -----------------------------
+    # 2) 사용자가 코디 질문인지 판단
+    # -----------------------------
     text = (user_message or "").lower()
     outfit_keywords = [
         "뭐입지",
@@ -56,10 +63,13 @@ def chat_and_log(
     ]
     is_outfit_question = any(kw in text for kw in outfit_keywords)
 
+    # -----------------------------
+    # 3) 룰 기반 코디 추천 생성
+    # -----------------------------
     fb: Dict[str, Any] | None = None
     if temp is not None:
         try:
-            fb = _build_outfit_by_temp_and_cond(temp, cond)
+            fb = build_outfit_by_temp_and_cond(temp, cond)  # ⭐ 함수명 변경
         except Exception:
             logger.exception("outfit rule build failed")
             fb = None
@@ -72,6 +82,9 @@ def chat_and_log(
         bool(fb),
     )
 
+    # -----------------------------
+    # 4) RULE 기반 코디 추천 답변
+    # -----------------------------
     if is_outfit_question and fb:
         logger.info(">>> OUTFIT RULE BRANCH HIT")
 
@@ -120,6 +133,9 @@ def chat_and_log(
             "rule_outfits": fb,
         }
 
+    # -----------------------------
+    # 5) GPT 기반 일반 대화 처리
+    # -----------------------------
     logger.info(">>> GPT BRANCH HIT")
 
     recent = list(
@@ -132,6 +148,7 @@ def chat_and_log(
         history.append(_msg("user", q))
         history.append(_msg("assistant", a))
 
+    # SYSTEM PROMPT
     system_prompt = (
         "너는 한국어로 대답하는 AI 모델이야. "
         "사용자가 날씨와 코디를 물으면 현재 날씨 정보를 활용해 코디를 추천하고, "
@@ -178,11 +195,6 @@ def chat_and_log(
     )
     gpt_answer = (completion.choices[0].message.content or "").strip()
 
-    context_to_save = {
-        "weather": weather or {},
-        "profile": profile or {},
-        "model_setting": setting.name if setting else None,
-    }
     log2: AiChatLogs = AiChatLogs.objects.create(
         user=user,
         model_setting=setting,
@@ -190,7 +202,11 @@ def chat_and_log(
         model_name=model_name,
         user_question=user_message,
         ai_answer=gpt_answer,
-        context=context_to_save,
+        context={
+            "weather": weather or {},
+            "profile": profile or {},
+            "model_setting": setting.name if setting else None,
+        },
     )
 
     return {
