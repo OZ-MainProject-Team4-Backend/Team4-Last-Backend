@@ -1,30 +1,8 @@
 from .weather_service import get_weather_data
 
 
-def generate_outfit_recommend(user, latitude: float, longitude: float) -> dict:
-    """
-    날씨 데이터를 기반으로 복장을 추천하는 함수 (룰 기반)
-    온도와 날씨 상태를 기준으로 추천 코디 3종과 설명문을 생성함
-    현재는 하드코딩된 룰 기반임
-
-    Args:
-        user: Django User 객체 (비로그인 시 None)
-        latitude (float): 위도
-        longitude (float): 경도
-
-    Returns:
-        dict: {
-            "rec_1": str,
-            "rec_2": str,
-            "rec_3": str,
-            "explanation": str
-        }
-    """
-
-    # 날씨 데이터 가져오기
-    weather = get_weather_data(latitude, longitude)
-    temp = weather.get("temperature", 20)
-    cond = (weather.get("condition") or "Clear").lower()
+def _build_outfit_by_temp_and_cond(temp: float, cond: str | None) -> dict:
+    cond_normalized = (cond or "Clear").lower()
 
     rec_1 = rec_2 = rec_3 = explanation = ""
 
@@ -135,3 +113,11 @@ def generate_outfit_recommend(user, latitude: float, longitude: float) -> dict:
         "rec_3": rec_3,
         "explanation": explanation,
     }
+
+
+def generate_outfit_recommend(user, latitude: float, longitude: float) -> dict:
+    weather = get_weather_data(latitude, longitude)
+    temp = weather.get("temperature", 20)
+    cond = (weather.get("condition") or "Clear").lower()
+
+    return _build_outfit_by_temp_and_cond(temp, cond)

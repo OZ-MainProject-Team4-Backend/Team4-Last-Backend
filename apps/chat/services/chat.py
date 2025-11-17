@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional, cast
 
 from django.db import transaction
@@ -8,8 +9,9 @@ from openai.types.chat import ChatCompletionMessageParam
 
 from apps.chat.models import AiChatLogs, AiModelSettings
 from apps.chat.services.model_picker import pick_model_setting
-from apps.recommend.services.recommend_service import generate_outfit_recommend
+from apps.recommend.services.recommend_service import _build_outfit_by_temp_and_cond
 
+logger = logging.getLogger(__name__)
 client = OpenAI()
 
 
@@ -27,6 +29,7 @@ def chat_and_log(
     profile: Dict[str, Any] | None,
     model_name: str = "gpt-4o",
 ) -> dict:
+
     temp: Optional[float] = (
         (weather.get("feels_like") or weather.get("temperature")) if weather else None
     )
@@ -36,6 +39,88 @@ def chat_and_log(
     setting: Optional[AiModelSettings] = None
     if temp is not None:
         setting = pick_model_setting(temp, humi, cond)
+
+    text = (user_message or "").lower()
+    outfit_keywords = [
+        "뭐입지",
+        "뭐 입지",
+        "입을까",
+        "입어야",
+        "코디",
+        "옷 추천",
+        "코디 추천",
+        "패션 추천",
+        "뭐 입어",
+        "오늘 입을",
+        "오늘 옷",
+    ]
+    is_outfit_question = any(kw in text for kw in outfit_keywords)
+
+    fb: Dict[str, Any] | None = None
+    if temp is not None:
+        try:
+            fb = _build_outfit_by_temp_and_cond(temp, cond)
+        except Exception:
+            logger.exception("outfit rule build failed")
+            fb = None
+
+    logger.info(
+        "chat_and_log debug: temp=%s, cond=%s, is_outfit_question=%s, has_rule=%s",
+        temp,
+        cond,
+        is_outfit_question,
+        bool(fb),
+    )
+
+    if is_outfit_question and fb:
+        logger.info(">>> OUTFIT RULE BRANCH HIT")
+
+        rec1 = fb.get("rec_1") or ""
+        rec2 = fb.get("rec_2") or ""
+        rec3 = fb.get("rec_3") or ""
+        explanation = fb.get("explanation") or ""
+
+        answer_lines: List[str] = []
+        answer_lines.append("[RULE] 온도 기반 하드코딩 코디 추천")
+        if explanation:
+            answer_lines.append(explanation)
+
+        answer_lines.append("")
+        answer_lines.append("오늘의 추천 코디:")
+        if rec1:
+            answer_lines.append(f"1) {rec1}")
+        if rec2:
+            answer_lines.append(f"2) {rec2}")
+        if rec3:
+            answer_lines.append(f"3) {rec3}")
+
+        final_answer = "\n".join(answer_lines).strip()
+
+        log: AiChatLogs = AiChatLogs.objects.create(
+            user=user,
+            model_setting=setting,
+            session_id=session_id,
+            model_name=model_name,
+            user_question=user_message,
+            ai_answer=final_answer,
+            context={
+                "weather": weather or {},
+                "profile": profile or {},
+                "model_setting": setting.name if setting else None,
+                "rule_outfits": fb,
+            },
+        )
+
+        return {
+            "session_id": str(session_id),
+            "answer": final_answer,
+            "used_setting": setting.category_combo if setting else None,
+            "log_id": log.id,
+            "created_at": log.created_at,
+            "rule_outfits": fb,
+        }
+
+    logger.info(">>> GPT BRANCH HIT")
 
     recent = list(
         AiChatLogs.objects.filter(user=user, session_id=session_id)
@@ -66,26 +151,6 @@ def chat_and_log(
     if profile:
         guidance_parts.append(f"사용자 프로필: {profile}")
 
-    if not setting:
-        fb = None
-        lat = (weather or {}).get("lat")
-        lon = (weather or {}).get("lon")
-        try:
-            if lat is not None and lon is not None:
-                fb = generate_outfit_recommend(user, float(lat), float(lon))
-        except Exception:
-            fb = None
-
-        if fb:
-            candidates = [
-                fb.get("rec_1") or "",
-                fb.get("rec_2") or "",
-                fb.get("rec_3") or "",
-            ]
-            candidates = [c for c in candidates if c]
-            if candidates:
-                guidance_parts.append("룰 폴백 후보:\n- " + "\n- ".join(candidates))
-
     fewshot: List[ChatCompletionMessageParam] = [
         _msg(
             "system",
@@ -111,28 +176,27 @@ def chat_and_log(
         messages=messages,
         temperature=0.8,
     )
-    answer = (completion.choices[0].message.content or "").strip()
+    gpt_answer = (completion.choices[0].message.content or "").strip()
 
     context_to_save = {
         "weather": weather or {},
         "profile": profile or {},
         "model_setting": setting.name if setting else None,
     }
-    log: AiChatLogs = AiChatLogs.objects.create(
+    log2: AiChatLogs = AiChatLogs.objects.create(
         user=user,
         model_setting=setting,
         session_id=session_id,
         model_name=model_name,
         user_question=user_message,
-        ai_answer=answer,
+        ai_answer=gpt_answer,
         context=context_to_save,
     )
 
-    log_id: int = cast(int, getattr(log, "id", log.pk))
-
     return {
         "session_id": str(session_id),
-        "answer": answer,
+        "answer": gpt_answer,
         "used_setting": setting.category_combo if setting else None,
-        "log_id": log_id,
+        "log_id": log2.id,
+        "created_at": log2.created_at,
     }

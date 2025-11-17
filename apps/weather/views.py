@@ -7,7 +7,7 @@ from typing import List, Tuple
 from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import serializers, status, viewsets
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -49,6 +49,7 @@ class WeatherDataOutSerializer(serializers.ModelSerializer):
 
 class WeatherViewSet(viewsets.GenericViewSet):
     serializer_class = WeatherDataOutSerializer
+    permission_classes = [permissions.AllowAny]
 
     def _resolve_coords_from_query(self, request) -> Tuple[float, float, str, str]:
         q = CurrentQuerySerializer(data=request.query_params)

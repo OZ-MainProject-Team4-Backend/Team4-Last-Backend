@@ -57,4 +57,5 @@ urlpatterns = [
     path("api/weather/", include("apps.weather.urls")),
     path("api/diary/", include("apps.diary.urls")),
     path("api/recommend/", include("apps.recommend.urls"), name="recommend"),
+    path("api/chat/", include("apps.chat.urls"), name="chat"),
 ]
