@@ -91,6 +91,9 @@ SOCIAL_PROVIDERS["naver"]["redirect_uri"] = env("NAVER_REDIRECT_URI", default=""
 SOCIAL_PROVIDERS["google"]["redirect_uri"] = env("GOOGLE_REDIRECT_URI", default="")
 SOCIAL_PROVIDERS["kakao"]["redirect_uri"] = env("KAKAO_REDIRECT_URI", default="")
 
+#URL설정
+FRONTEND_URL = env("FRONTEND_URL", default="https://team4.p-e.kr")
+
 # ============ CORS 설정 ============
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
