@@ -40,24 +40,38 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
+          script_stop: false
           envs: POSTGRES_HOST,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,DJANGO_SECRET_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_STORAGE_BUCKET_NAME,AWS_S3_REGION_NAME
           script: |
-            set -e
             echo "=== Starting deployment ==="
-            cd ~/Team4-Last-Backend
+            cd ~/Team4-Last-Backend || { echo "❌ Directory not found"; exit 1; }
+            
             echo "📦 Pulling latest code..."
-            git pull origin main || { echo "Git pull failed"; exit 1; }
+            git pull origin main || { echo "❌ Git pull failed"; exit 1; }
+            
             export DJANGO_SETTINGS_MODULE=settings.production
+            
             echo "🔴 Stopping gunicorn..."
             pkill -f gunicorn || true
             sleep 3
+            
             echo "🔄 Activating virtualenv..."
-            source ~/.pyenv/versions/aws/bin/activate || { echo "Virtualenv activation failed"; exit 1; }
+            source ~/.pyenv/versions/aws/bin/activate || { echo "❌ Virtualenv activation failed"; exit 1; }
+            
             echo "🗄️ Running migrations..."
-            python manage.py migrate || { echo "Migration failed"; exit 1; }
+            python manage.py migrate || { echo "❌ Migration failed"; exit 1; }
+            
             echo "🚀 Starting gunicorn..."
-            gunicorn settings.wsgi:application --bind 0.0.0.0:8000 --workers 3 --daemon || { echo "Gunicorn start failed"; exit 1; }
+            gunicorn settings.wsgi:application --bind 0.0.0.0:8000 --workers 3 --daemon || { echo "❌ Gunicorn start failed"; exit 1; }
             sleep 3
+            
             echo "✅ Checking if gunicorn is running..."
-            ps aux | grep gunicorn | grep -v grep || { echo "Gunicorn not running"; exit 1; }
+            if pgrep -f gunicorn > /dev/null; then
+                echo "✅ Gunicorn is running!"
+                ps aux | grep gunicorn | grep -v grep
+            else
+                echo "❌ Gunicorn not running"
+                exit 1
+            fi
+            
             echo "✅ Deployment completed successfully!"
