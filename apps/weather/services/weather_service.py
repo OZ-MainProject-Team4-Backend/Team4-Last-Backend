@@ -1,11 +1,14 @@
 from __future__ import annotations
-from typing import Any, TypedDict
+
 from datetime import datetime
+from typing import Any, TypedDict
+
 from apps.weather.services import openweather
 
 
 class CurrentOut(openweather.CurrentOut, total=False):
     """openweather.CurrentOut 확장형 — valid_time 키 추가"""
+
     valid_time: float
 
 

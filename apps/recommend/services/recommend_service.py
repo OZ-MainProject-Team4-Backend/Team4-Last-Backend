@@ -1,19 +1,22 @@
 from __future__ import annotations
-from typing import Tuple, Optional, cast, Any
+
 from datetime import datetime
-from django.db import transaction
-from django.core.exceptions import ObjectDoesNotExist
+from typing import Any, Optional, Tuple, cast
+
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
 
-from apps.weather.models import WeatherLocation, WeatherData
 from apps.recommend.models import OutfitRecommendation
+from apps.weather.models import WeatherData, WeatherLocation
 from apps.weather.services.weather_service import get_current
-
 
 User: Any = get_user_model()
 
 
-def _recommend_by_condition(cond: str) -> Tuple[Tuple[str, str, str], str] | Tuple[None, None]:
+def _recommend_by_condition(
+    cond: str,
+) -> Tuple[Tuple[str, str, str], str] | Tuple[None, None]:
     cond = cond.lower()
     if cond in ["snow", "눈"]:
         return (
@@ -135,7 +138,9 @@ def _generate(lat: float, lon: float) -> dict[str, str]:
 
 
 @transaction.atomic
-def create_by_coords(user: Optional[Any], lat: float, lon: float) -> OutfitRecommendation:
+def create_by_coords(
+    user: Optional[Any], lat: float, lon: float
+) -> OutfitRecommendation:
     """좌표 기반 추천"""
     data = _generate(lat, lon)
     weather_data = _save_weather(lat, lon)
@@ -152,7 +157,9 @@ def create_by_coords(user: Optional[Any], lat: float, lon: float) -> OutfitRecom
 
 
 @transaction.atomic
-def create_by_location(user: Optional[Any], city: str, district: str) -> OutfitRecommendation:
+def create_by_location(
+    user: Optional[Any], city: str, district: str
+) -> OutfitRecommendation:
     """지역 기반 추천"""
     try:
         loc = WeatherLocation.objects.get(city=city, district=district)
