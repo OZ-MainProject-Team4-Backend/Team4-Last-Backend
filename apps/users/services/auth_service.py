@@ -173,7 +173,6 @@ def signup_user_service(
             status.HTTP_400_BAD_REQUEST,
         )
 
-    # password_confirm, age 제거 후 사용자 생성
     user_data = {
         'email': validated_data.get('email'),
         'password': validated_data.get('password'),
@@ -182,7 +181,6 @@ def signup_user_service(
         'age_group': validated_data.get('age_group'),
         'gender': validated_data.get('gender'),
     }
-    # None 값 제거
     user_data = {k: v for k, v in user_data.items() if v is not None}
 
     user = User.objects.create_user(**user_data)
@@ -199,6 +197,7 @@ def handle_login(user: Any, is_auto_login: bool) -> dict:
     tokens = create_jwt_pair_for_user(user, is_auto_login)
 
     response_data = {
+        "user": get_user_data(user),  # ✅ 추가
         "access": tokens["access"],
         "access_expires_at": tokens["access_expires_at"],
         "is_auto_login": is_auto_login,
@@ -248,7 +247,7 @@ def refresh_token_service(
         )
 
     try:
-        refresh = RefreshToken(refresh_token_value)  # type: ignore
+        refresh = RefreshToken(refresh_token_value)
         new_access_token = str(refresh.access_token)
         user_id = refresh.get("user_id")
         user = User.objects.get(id=user_id)
@@ -434,19 +433,21 @@ def social_login_service(
         tokens = create_jwt_pair_for_user(user, is_auto_login)
         logger.info(f"Social login success: {provider} - {user.email}")
 
+        # ✅ refresh는 여기서 반환하지 않고 view에서 쿠키로만 설정
         response_data = {
             "user": get_user_data(user),
             "access": tokens["access"],
             "access_expires_at": tokens["access_expires_at"],
             "is_auto_login": is_auto_login,
-            "refresh": tokens["refresh"],
         }
 
-        return (True, response_data, None, None, status.HTTP_200_OK)
+        # refresh는 별도로 반환 (view에서 쿠키 설정용)
+        return (True, response_data, tokens["refresh"], None, status.HTTP_200_OK)
 
     except SocialTokenInvalidError:
         return (
             False,
+            None,
             None,
             "token_invalid",
             "소셜 인증 실패",
@@ -456,6 +457,7 @@ def social_login_service(
         logger.exception(f"Social login error: {str(e)}")
         return (
             False,
+            None,
             None,
             "internal_error",
             "로그인 처리 중 오류가 발생했습니다",

@@ -247,3 +247,6 @@ OPENWEATHER: OpenWeatherConf = {
     "API_KEY": os.getenv("OPENWEATHER_API_KEY", ""),
     "TIMEOUT": 5,
 }
+
+#URL설정
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
