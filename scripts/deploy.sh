@@ -2,12 +2,16 @@
 set +e
 
 echo "=== Starting deployment ==="
-cd ~/Team4-Last-Backend || { echo "❌ Directory not found"; exit 1; }
-
-echo "📦 Pulling latest code..."
-git pull origin main || { echo "❌ Git pull failed"; exit 1; }
 
 export DJANGO_SETTINGS_MODULE=settings.production
+
+# ✅ envs/.env.prod 로드 (심볼릭 링크로 env/.env.prod도 가능)
+if [ -f ~/Team4-Last-Backend/envs/.env.prod ]; then
+    echo "📋 Loading environment variables from envs/.env.prod"
+    set -a
+    source ~/Team4-Last-Backend/envs/.env.prod
+    set +a
+fi
 
 echo "🔴 Stopping gunicorn..."
 pkill -f gunicorn
