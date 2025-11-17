@@ -106,9 +106,9 @@ class AiChatViewSet(viewsets.ViewSet):
             qs = qs.filter(id__lt=before_id)
 
         qs = qs.order_by("-created_at")[:limit]
-        qs = qs.order_by("created_at")
 
-        logs = list(qs.values("id", "user_question", "ai_answer"))
+        logs = list(qs.values("id", "user_question", "ai_answer", "created_at"))
+        logs.reverse()
 
         if not logs:
             return Response(
@@ -119,8 +119,24 @@ class AiChatViewSet(viewsets.ViewSet):
         out = []
         for row in logs:
             msg_id = row["id"]
-            out.append({"id": msg_id, "role": "user", "text": row["user_question"]})
-            out.append({"id": msg_id, "role": "ai", "text": row["ai_answer"]})
+            created_at = timezone.localtime(row["created_at"]).isoformat()
+
+            out.append(
+                {
+                    "id": msg_id,
+                    "role": "user",
+                    "text": row["user_question"],
+                    "created_at": created_at,
+                }
+            )
+            out.append(
+                {
+                    "id": msg_id,
+                    "role": "ai",
+                    "text": row["ai_answer"],
+                    "created_at": created_at,
+                }
+            )
 
         oldest_id = logs[0]["id"]
         has_more = AiChatLogs.objects.filter(
@@ -131,6 +147,8 @@ class AiChatViewSet(viewsets.ViewSet):
 
         return Response(
             {
+                "session_id": session_id,
+                "created_at": timezone.localtime(logs[0]["created_at"]).isoformat(),
                 "messages": out,
                 "next_before_id": oldest_id if has_more else None,
                 "has_more": has_more,
