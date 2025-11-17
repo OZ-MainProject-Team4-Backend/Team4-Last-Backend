@@ -55,6 +55,6 @@ urlpatterns = [
     path("api/social/", include("apps.users.social_urls")),
     path("api/locations/", include("apps.locations.urls")),
     path("api/weather/", include("apps.weather.urls")),
-    path("api/diary/", include("apps.diary.urls")),
+    path("api/diaries/", include("apps.diary.urls")),
     path("api/recommend/", include("apps.recommend.urls"), name="recommend"),
 ]
