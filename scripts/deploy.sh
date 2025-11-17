@@ -5,12 +5,21 @@ echo "=== Starting deployment ==="
 
 export DJANGO_SETTINGS_MODULE=settings.production
 
-# ✅ envs/.env.prod 로드 (심볼릭 링크로 env/.env.prod도 가능)
+# 환경변수 로드
 if [ -f ~/Team4-Last-Backend/envs/.env.prod ]; then
     echo "📋 Loading environment variables from envs/.env.prod"
     set -a
     source ~/Team4-Last-Backend/envs/.env.prod
     set +a
+
+    # ✅ 디버깅: 주요 환경변수 확인
+    echo "DEBUG: POSTGRES_HOST=$POSTGRES_HOST"
+    echo "DEBUG: POSTGRES_USER=$POSTGRES_USER"
+    echo "DEBUG: POSTGRES_DB=$POSTGRES_DB"
+    echo "DEBUG: OPENAI_API_KEY=${OPENAI_API_KEY:0:20}..."
+else
+    echo "❌ envs/.env.prod not found!"
+    exit 1
 fi
 
 echo "🔴 Stopping gunicorn..."

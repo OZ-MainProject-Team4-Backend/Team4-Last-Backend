@@ -65,3 +65,4 @@ websockets==15.0.1
 whitenoise==6.11.0
 boto3==1.40.70
 django-storages==1.14.6
+django-cors-headers>=3.14.0
