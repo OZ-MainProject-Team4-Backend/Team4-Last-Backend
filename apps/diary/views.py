@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
@@ -52,10 +54,25 @@ class DiaryViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         lat = serializer.validated_data.pop("lat", None)
         lon = serializer.validated_data.pop("lon", None)
+        date = serializer.validated_data.get("date")
+
+        today = datetime.now().date()
 
         #  1. 날씨 데이터 조회
         try:
-            current_weather = ow.get_current(lat=lat, lon=lon)
+            # 오늘 → 현재 날씨 API(openweather.py - get_current() 호출)
+            if date == today:
+                current_weather = ow.get_current(lat=lat, lon=lon)
+
+            # 5일 이내 과거 → Timemachine API(openweather.py - get_historical() 호출)
+            elif today - timedelta(days=5) <= date < today:
+                dt = datetime.combine(date, datetime.min.time())
+                current_weather = ow.get_historical(lat=lat, lon=lon, date=dt)
+
+            # 6일 이상 과거 → 날씨 없음
+            else:
+                current_weather = None
+
         except ow.ProviderTimeout:
             raise ValidationError({"detail": "weather_provider_timeout"})
         except ow.ProviderError as e:

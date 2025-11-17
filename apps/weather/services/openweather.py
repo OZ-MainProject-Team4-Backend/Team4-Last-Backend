@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Dict, TypedDict
 
 import requests
@@ -63,6 +64,30 @@ def get_current(lat: float, lon: float, *, timeout: int | None = None) -> Curren
         "condition": weather0.get("main"),
         "icon": weather0.get("icon"),
         "raw": data,
+    }
+
+
+def get_historical(
+    lat: float, lon: float, date: datetime, *, timeout: int | None = None
+) -> dict:
+    ts = int(date.timestamp())  # Unix timestamp
+    data = _request(
+        "/data/2.5/onecall/timemachine", {"lat": lat, "lon": lon, "dt": ts}, timeout
+    )
+    main = data.get("current", {})
+    weather0 = (main.get("weather") or [{}])[0]
+    wind = main.get("wind", {})
+    rain = main.get("rain", {}) or {}
+    return {
+        "base_time": int(main.get("dt") or 0),
+        "temperature": float(main.get("temp")),
+        "feels_like": float(main.get("feels_like")),
+        "humidity": int(main.get("humidity")) if "humidity" in main else None,
+        "wind_speed": float(wind.get("speed")) if "speed" in wind else None,
+        "rain_volume": float(rain.get("1h") or rain.get("3h") or 0.0),
+        "condition": weather0.get("main"),
+        "icon": weather0.get("icon"),
+        "raw": main,
     }
 
 
