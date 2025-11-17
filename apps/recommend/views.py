@@ -11,27 +11,37 @@ from .serializers import (
 from .services.recommend_service import create_by_coords, create_by_location
 
 
-class OutfitRecommendView(APIView):
+class OutfitRecommendByCoordsView(APIView):
     @extend_schema(
-        summary="복장 추천",
-        description="latitude/longitude 또는 city/district 중 하나만 전달하면 추천 결과를 반환합니다.",
+        summary="좌표 기반 복장 추천",
+        request=CoordsRecommendSerializer,
         responses={200: OutfitRecommendSerializer},
         tags=["Recommend"],
     )
-    def get(self, request):
-        lat = request.query_params.get("latitude")
-        lon = request.query_params.get("longitude")
-        city = request.query_params.get("city")
-        district = request.query_params.get("district")
+    def post(self, request):
+        ser = CoordsRecommendSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
 
-        if lat and lon:
-            result = create_by_coords(request.user, float(lat), float(lon))
-            return Response(OutfitRecommendSerializer(result).data)
+        lat = ser.validated_data["lat"]
+        lon = ser.validated_data["lon"]
 
-        if city and district:
-            result = create_by_location(request.user, city, district)
-            return Response(OutfitRecommendSerializer(result).data)
+        result = create_by_coords(request.user, lat, lon)
+        return Response(OutfitRecommendSerializer(result).data)
 
-        raise ValidationError(
-            "latitude+longitude 또는 city+district 중 하나를 제공해야 합니다."
-        )
+
+class OutfitRecommendByLocationView(APIView):
+    @extend_schema(
+        summary="지역 기반 복장 추천",
+        request=LocationRecommendSerializer,
+        responses={200: OutfitRecommendSerializer},
+        tags=["Recommend"],
+    )
+    def post(self, request):
+        ser = LocationRecommendSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        city = ser.validated_data["city"]
+        district = ser.validated_data["district"]
+
+        result = create_by_location(request.user, city, district)
+        return Response(OutfitRecommendSerializer(result).data)
