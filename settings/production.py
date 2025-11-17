@@ -6,6 +6,16 @@ import environ
 
 from .base import *
 
+# ================== prod 전용 앱 ==================
+INSTALLED_APPS += [
+    "corsheaders",
+]
+
+# ================== prod 전용 미들웨어 조정 ==================
+MIDDLEWARE = list(MIDDLEWARE)  # 안전 복사
+if "corsheaders.middleware.CorsMiddleware" not in MIDDLEWARE:
+    MIDDLEWARE.insert(0, "corsheaders.middleware.CorsMiddleware")
+
 # ============ BASE_DIR 설정 (Path로 통일) ============
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -100,6 +110,11 @@ CORS_ALLOWED_ORIGINS = env.list(
     default=["https://team4.p-e.kr", "http://localhost:5173"],
 )
 CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://team4.p-e.kr",
+    "http://localhost:5173",
+]
 
 # ============ JWT 설정 ============
 SIMPLE_JWT = {
