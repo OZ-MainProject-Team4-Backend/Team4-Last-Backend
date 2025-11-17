@@ -3,14 +3,30 @@ from rest_framework import serializers
 from .models import OutfitRecommendation
 
 
+class CoordsRecommendSerializer(serializers.Serializer):
+    """좌표 기반 추천 요청"""
+
+    latitude = serializers.FloatField(help_text="위도")
+    longitude = serializers.FloatField(help_text="경도")
+
+
+class LocationRecommendSerializer(serializers.Serializer):
+    """지역 기반 추천 요청"""
+
+    city = serializers.CharField(help_text="도시명 (예: 서울특별시)")
+    district = serializers.CharField(help_text="구/군명 (예: 강남구)")
+
+
 class OutfitRecommendSerializer(serializers.ModelSerializer):
-    # rec_1, rec_2, rec_3 > 하나의 리스트로 반환
+    """복장 추천 응답"""
+
     recommendations = serializers.SerializerMethodField()
 
     class Meta:
         model = OutfitRecommendation
         fields = [
             "id",
+            "weather_data",
             "recommendations",
             "explanation",
             "image_url",
@@ -18,6 +34,5 @@ class OutfitRecommendSerializer(serializers.ModelSerializer):
         ]
 
     def get_recommendations(self, obj):
-
-        # 세 개의 복장 추천 필드를 하나의 리스트로 묶어 반환.
+        """rec_1~3을 리스트 형태로 묶어서 반환"""
         return [obj.rec_1, obj.rec_2, obj.rec_3]
