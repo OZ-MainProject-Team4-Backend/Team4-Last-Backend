@@ -9,7 +9,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import SocialAccount
 from .serializers import (
     EmailSendSerializer,
     EmailVerifySerializer,
@@ -41,8 +40,6 @@ from .services.auth_service import (
     verify_email_change_service,
     verify_email_code_service,
 )
-from .services.social_auth_service import SocialAuthService
-from .services.token_service import create_jwt_pair_for_user
 from .utils.auth_utils import get_user_data
 
 User = get_user_model()
@@ -258,7 +255,7 @@ class MyPageView(APIView):
     def get(self, request):
         u = request.user
         return success_response(
-            "",
+            "마이페이지 조회 성공",  # ✅ 메시지 추가
             data={
                 **get_user_data(u),
                 "favorite_regions": getattr(u, "favorite_regions", None) or [],
@@ -385,9 +382,18 @@ class SocialLoginView(APIView):
         is_auto_login = request.data.get("isAutoLogin", False)
         token = serializer.validated_data["token"]
 
-        success, response_data, error_code, error_message, http_status = (
-            social_login_service(provider, token, is_auto_login)
-        )
+        # 반환: (success, response_data, refresh_token, error_code, error_message, http_status)
+        result = social_login_service(provider, token, is_auto_login)
+
+        (
+            success,
+            response_data,
+            refresh_token,
+            error_code,
+            error_message,
+            http_status,
+        ) = result
+
         if not success:
             return error_response(error_code, error_message, http_status)
 
@@ -396,8 +402,7 @@ class SocialLoginView(APIView):
             data=response_data,
             status_code=200,
         )
-
-        set_refresh_token_cookie(response, response_data["refresh"], is_auto_login)
+        set_refresh_token_cookie(response, refresh_token, is_auto_login)
         return response
 
 
@@ -406,7 +411,9 @@ class SocialCallbackView(APIView):
 
     def get(self, request, provider):
         if provider not in settings.SOCIAL_PROVIDERS:
-            return redirect("http://localhost:3000/login/failed")
+            # ✅ 환경변수 사용
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+            return redirect(f"{frontend_url}/login/failed")
 
         config = settings.SOCIAL_PROVIDERS[provider]
         code = request.GET.get("code")
@@ -415,10 +422,12 @@ class SocialCallbackView(APIView):
             provider, code, config
         )
         if not success:
-            return redirect("http://localhost:3000/login/failed")
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+            return redirect(f"{frontend_url}/login/failed")
 
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
         response = redirect(
-            f"http://localhost:3000/login/success?access={response_data['access']}"
+            f"{frontend_url}/login/success?access={response_data['access']}"
         )
         set_refresh_token_cookie(
             response, response_data["refresh"], is_auto_login=False
