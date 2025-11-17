@@ -45,6 +45,7 @@ def get_user_data(user):
         "gender": getattr(user, "gender", None),
         "age_group": getattr(user, "age_group", None),
         "is_verified": user.email_verified,
+        "favorite_regions": getattr(user, "favorite_regions", None) or [],
         "created_at": (
             user.created_at.isoformat() if hasattr(user, "created_at") else None
         ),
