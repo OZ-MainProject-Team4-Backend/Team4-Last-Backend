@@ -11,28 +11,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug Secrets
+        run: |
+          echo "EC2_HOST: ${{ secrets.EC2_HOST }}"
+          echo "EC2_USER: ${{ secrets.EC2_USER }}"
+          echo "EC2_PRIVATE_KEY exists: $([ -z '${{ secrets.EC2_PRIVATE_KEY }}' ] && echo 'NO' || echo 'YES')"
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
+        env:
+          POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_STORAGE_BUCKET_NAME: ${{ secrets.AWS_STORAGE_BUCKET_NAME }}
+          AWS_S3_REGION_NAME: ${{ secrets.AWS_S3_REGION_NAME }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           envs: POSTGRES_HOST,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,DJANGO_SECRET_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_STORAGE_BUCKET_NAME,AWS_S3_REGION_NAME
           script: |
+            set -e
+            echo "=== Starting deployment ==="
             cd ~/Team4-Last-Backend
-            git pull origin main
+            echo "📦 Pulling latest code..."
+            git pull origin main || { echo "Git pull failed"; exit 1; }
             export DJANGO_SETTINGS_MODULE=settings.production
-            export POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
-            export POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-            export POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            export DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
-            export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-            export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            export AWS_STORAGE_BUCKET_NAME=${{ secrets.AWS_STORAGE_BUCKET_NAME }}
-            export AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }}
+            echo "🔴 Stopping gunicorn..."
             pkill -f gunicorn || true
-            source ~/.pyenv/versions/aws/bin/activate
-            python manage.py migrate
-            gunicorn settings.wsgi:application --bind 0.0.0.0:8000 --workers 3 --daemon
-            echo "✅ Deployment completed!"
+            sleep 2
+            echo "🔄 Activating virtualenv..."
+            source ~/.pyenv/versions/aws/bin/activate || { echo "Virtualenv activation failed"; exit 1; }
+            echo "🗄️ Running migrations..."
+            python manage.py migrate || { echo "Migration failed"; exit 1; }
+            echo "🚀 Starting gunicorn..."
+            gunicorn settings.wsgi:application --bind 0.0.0.0:8000 --workers 3 --daemon || { echo "Gunicorn start failed"; exit 1; }
+            sleep 2
+            echo "✅ Checking if gunicorn is running..."
+            ps aux | grep gunicorn | grep -v grep || { echo "Gunicorn not running"; exit 1; }
+            echo "✅ Deployment completed successfully!"
