@@ -382,24 +382,21 @@ class SocialLoginView(APIView):
         is_auto_login = request.data.get("isAutoLogin", False)
         token = serializer.validated_data["token"]
 
-        # ✅ 반환값 순서 수정: (success, response_data, refresh_token, error_code, error_message, http_status)
+        # 반환: (success, response_data, refresh_token, error_code, error_message, http_status)
         result = social_login_service(provider, token, is_auto_login)
 
-        if len(result) == 6:  # 성공 케이스
-            success, response_data, refresh_token, _, _, http_status = result
-            if not success:
-                return error_response(response_data, refresh_token, http_status)
+        success, response_data, refresh_token, error_code, error_message, http_status = result
 
-            response = success_response(
-                "로그인 성공",
-                data=response_data,
-                status_code=200,
-            )
-            set_refresh_token_cookie(response, refresh_token, is_auto_login)
-            return response
-        else:  # 에러 케이스
-            success, _, _, error_code, error_message, http_status = result
+        if not success:
             return error_response(error_code, error_message, http_status)
+
+        response = success_response(
+            "로그인 성공",
+            data=response_data,
+            status_code=200,
+        )
+        set_refresh_token_cookie(response, refresh_token, is_auto_login)
+        return response
 
 
 class SocialCallbackView(APIView):

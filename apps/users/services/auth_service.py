@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 # ============ Nickname Service ============
 def validate_nickname_service(
-    nickname: str,
+        nickname: str,
 ) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """닉네임 유효성 검사"""
     if User.objects.filter(nickname__iexact=nickname, deleted_at__isnull=True).exists():
@@ -51,11 +51,11 @@ def validate_nickname_service(
 
 # ============ Email Verification Service ============
 def send_email_verification_service(
-    email: str,
+        email: str,
 ) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """인증 이메일 발송"""
     if User.objects.filter(
-        email__iexact=email, email_verified=True, deleted_at__isnull=True
+            email__iexact=email, email_verified=True, deleted_at__isnull=True
     ).exists():
         return (
             False,
@@ -105,7 +105,7 @@ def send_email_verification_service(
 
 
 def verify_email_code_service(
-    email: str, code: str
+        email: str, code: str
 ) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """이메일 인증 코드 검증"""
     cached = cache.get(key_verif(email))
@@ -125,7 +125,7 @@ def verify_email_code_service(
 
 # ============ Signup Service ============
 def signup_user_service(
-    validated_data: dict,
+        validated_data: dict,
 ) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
     """사용자 회원가입"""
     email = validated_data.get("email")
@@ -160,10 +160,10 @@ def signup_user_service(
 
     nickname = validated_data.get("nickname")
     if (
-        nickname
-        and User.objects.filter(
-            nickname__iexact=nickname, deleted_at__isnull=True
-        ).exists()
+            nickname
+            and User.objects.filter(
+        nickname__iexact=nickname, deleted_at__isnull=True
+    ).exists()
     ):
         return (
             False,
@@ -197,7 +197,7 @@ def handle_login(user: Any, is_auto_login: bool) -> dict:
     tokens = create_jwt_pair_for_user(user, is_auto_login)
 
     response_data = {
-        "user": get_user_data(user),  # ✅ 추가
+        "user": get_user_data(user),
         "access": tokens["access"],
         "access_expires_at": tokens["access_expires_at"],
         "is_auto_login": is_auto_login,
@@ -222,7 +222,7 @@ def logout_user_service(user: Any) -> Tuple[bool, Optional[str], Optional[str]]:
 
 # ============ Refresh Token Service ============
 def refresh_token_service(
-    refresh_token_value: Optional[str],
+        refresh_token_value: Optional[str],
 ) -> Tuple[
     bool,
     Optional[str],
@@ -247,7 +247,7 @@ def refresh_token_service(
         )
 
     try:
-        refresh = RefreshToken(refresh_token_value)
+        refresh = RefreshToken(refresh_token_value)  # type: ignore
         new_access_token = str(refresh.access_token)
         user_id = refresh.get("user_id")
         user = User.objects.get(id=user_id)
@@ -308,7 +308,7 @@ def refresh_token_service(
 
 # ============ Profile Update Service ============
 def email_change_service(
-    user: Any, new_email: Optional[str]
+        user: Any, new_email: Optional[str]
 ) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """이메일 변경 인증 코드 발송"""
     if not new_email:
@@ -343,7 +343,7 @@ def email_change_service(
 
 
 def verify_email_change_service(
-    user: Any, new_email: str, code: str
+        user: Any, new_email: str, code: str
 ) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
     """이메일 변경 검증"""
     new_email_stripped = new_email.strip().lower() if new_email else ""
@@ -379,7 +379,7 @@ def verify_email_change_service(
 
 # ============ Favorite Regions Service ============
 def update_favorite_regions_service(
-    user: Any, regions: list
+        user: Any, regions: list
 ) -> Tuple[bool, list, Optional[str], Optional[str], Optional[int]]:
     """즐겨찾는 지역 업데이트"""
     user.favorite_regions = regions
@@ -391,7 +391,7 @@ def update_favorite_regions_service(
 
 # ============ User Deletion Service ============
 def delete_user_service(
-    user: Any,
+        user: Any,
 ) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """사용자 탈퇴"""
     if user.deleted_at:
@@ -412,9 +412,13 @@ def delete_user_service(
 
 # ============ Social Login Service ============
 def social_login_service(
-    provider: str, token: str, is_auto_login: bool
-) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
-    """소셜 로그인"""
+        provider: str, token: str, is_auto_login: bool
+) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[str], Optional[int]]:
+    """소셜 로그인
+
+    Returns:
+        success, response_data, refresh_token, error_code, error_message, http_status
+    """
     try:
         social_user_info = verify_social_token(provider, token)
         user = SocialAuthService.get_or_create_user_from_social(
@@ -425,6 +429,7 @@ def social_login_service(
             return (
                 False,
                 None,
+                None,
                 "account_inactive",
                 "비활성 계정",
                 status.HTTP_403_FORBIDDEN,
@@ -433,7 +438,6 @@ def social_login_service(
         tokens = create_jwt_pair_for_user(user, is_auto_login)
         logger.info(f"Social login success: {provider} - {user.email}")
 
-        # ✅ refresh는 여기서 반환하지 않고 view에서 쿠키로만 설정
         response_data = {
             "user": get_user_data(user),
             "access": tokens["access"],
@@ -441,8 +445,7 @@ def social_login_service(
             "is_auto_login": is_auto_login,
         }
 
-        # refresh는 별도로 반환 (view에서 쿠키 설정용)
-        return (True, response_data, tokens["refresh"], None, status.HTTP_200_OK)
+        return (True, response_data, tokens["refresh"], None, None, status.HTTP_200_OK)
 
     except SocialTokenInvalidError:
         return (
@@ -467,7 +470,7 @@ def social_login_service(
 
 # ============ Social Callback Service ============
 def social_callback_service(
-    provider: str, code: Optional[str], config: dict
+        provider: str, code: Optional[str], config: dict
 ) -> Tuple[bool, Optional[dict], Optional[str], Optional[str]]:
     """소셜 콜백 처리"""
     import requests
@@ -548,7 +551,7 @@ def _parse_social_user(provider: str, user_data: dict) -> dict:
 
 # ============ Social Link Service ============
 def social_link_service(
-    user: Any, provider: str, token: str
+        user: Any, provider: str, token: str
 ) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """소셜 계정 연결"""
     try:
@@ -572,7 +575,7 @@ def social_link_service(
 
 # ============ Social Unlink Service ============
 def social_unlink_service(
-    user: Any, provider: str
+        user: Any, provider: str
 ) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """소셜 계정 연결 해제"""
     try:
