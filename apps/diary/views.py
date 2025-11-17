@@ -58,11 +58,11 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
         #  1. 날씨 데이터 조회
         try:
-            #오늘 → 현재 날씨 API
+            #오늘 → 현재 날씨 API(openweather.py - get_current() 호출)
             if date == today:
                 current_weather = ow.get_current(lat=lat, lon=lon)
 
-            #5일 이내 과거 → Timemachine API
+            #5일 이내 과거 → Timemachine API(openweather.py - get_historical() 호출)
             elif today - timedelta(days=5) <= date < today:
                 dt = datetime.combine(date, datetime.min.time())
                 current_weather = ow.get_historical(lat=lat, lon=lon, date=dt)
