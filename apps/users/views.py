@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 # ============ Helper Functions ============
 def success_response(
-        message: str, data=None, status_code=200, http_status=status.HTTP_200_OK
+    message: str, data=None, status_code=200, http_status=status.HTTP_200_OK
 ):
     return Response(
         (
@@ -70,7 +70,7 @@ def success_response(
 
 
 def error_response(
-        code: str, message: str, http_status=status.HTTP_400_BAD_REQUEST, status_code=None
+    code: str, message: str, http_status=status.HTTP_400_BAD_REQUEST, status_code=None
 ):
     status_code_map = {
         status.HTTP_400_BAD_REQUEST: 400,
@@ -385,7 +385,14 @@ class SocialLoginView(APIView):
         # 반환: (success, response_data, refresh_token, error_code, error_message, http_status)
         result = social_login_service(provider, token, is_auto_login)
 
-        success, response_data, refresh_token, error_code, error_message, http_status = result
+        (
+            success,
+            response_data,
+            refresh_token,
+            error_code,
+            error_message,
+            http_status,
+        ) = result
 
         if not success:
             return error_response(error_code, error_message, http_status)
