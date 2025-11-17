@@ -3,15 +3,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.contrib.auth import get_user_model
 
-from apps.weather.models import WeatherData, WeatherLocation
-from apps.weather.services.weather_service import get_current, CurrentOut
 from apps.recommend.models import OutfitRecommendation
+from apps.weather.models import WeatherData, WeatherLocation
+from apps.weather.services.weather_service import CurrentOut, get_current
 
 UserModel = get_user_model()
+
 
 def _recommend_by_condition(
     cond: str,
@@ -142,6 +143,7 @@ def _recommend_by_temperature(temp: float) -> Tuple[Tuple[str, str, str], str]:
         f"{temp}°C 이상의 무더운 날씨엔 시원한 소재의 옷을 추천드려요.",
     )
 
+
 def _save_weather(
     lat: float,
     lon: float,
@@ -200,6 +202,7 @@ def _generate(lat: float, lon: float) -> Dict[str, str]:
         "explanation": explanation or "",
     }
 
+
 @transaction.atomic
 def create_by_coords(user: Any, lat: float, lon: float) -> OutfitRecommendation:
     """좌표 기반 추천 생성 + 저장"""
@@ -247,6 +250,7 @@ def create_by_location(
 
     return OutfitRecommendation.objects.create(**kwargs)
 
+
 def build_outfit_by_temp_and_cond(
     temp: float,
     cond: Optional[str],
@@ -263,6 +267,9 @@ def build_outfit_by_temp_and_cond(
         "explanation": explanation or "",
     }
 
-def generate_outfit_recommend(user: Any, latitude: float, longitude: float) -> Dict[str, str]:
+
+def generate_outfit_recommend(
+    user: Any, latitude: float, longitude: float
+) -> Dict[str, str]:
     """기존 시그니처 유지용: (user, 위도, 경도) -> 추천 dict"""
     return _generate(latitude, longitude)
