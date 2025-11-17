@@ -1,5 +1,6 @@
-from typing import Any, Dict, TypedDict
 from datetime import datetime
+from typing import Any, Dict, TypedDict
+
 import requests
 from django.conf import settings
 
@@ -65,9 +66,14 @@ def get_current(lat: float, lon: float, *, timeout: int | None = None) -> Curren
         "raw": data,
     }
 
-def get_historical(lat: float, lon: float, date: datetime, *, timeout: int | None = None) -> dict:
+
+def get_historical(
+    lat: float, lon: float, date: datetime, *, timeout: int | None = None
+) -> dict:
     ts = int(date.timestamp())  # Unix timestamp
-    data = _request("/data/2.5/onecall/timemachine", {"lat": lat, "lon": lon, "dt": ts}, timeout)
+    data = _request(
+        "/data/2.5/onecall/timemachine", {"lat": lat, "lon": lon, "dt": ts}, timeout
+    )
     main = data.get("current", {})
     weather0 = (main.get("weather") or [{}])[0]
     wind = main.get("wind", {})
@@ -83,6 +89,7 @@ def get_historical(lat: float, lon: float, date: datetime, *, timeout: int | Non
         "icon": weather0.get("icon"),
         "raw": main,
     }
+
 
 def get_forecast(
     lat: float, lon: float, *, timeout: int | None = None
