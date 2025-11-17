@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -133,16 +135,24 @@ class SocialAccount(models.Model):
     def __str__(self):
         return f"{self.provider} - {self.user.email}"
 
+def default_access_expires():
+        return timezone.now() + timedelta(minutes=5)
+
+def default_refresh_expires():
+        return timezone.now() + timedelta(days=7)
 
 class Token(models.Model):
 
     id = models.BigAutoField(primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="token")
+    user = models.OneToOneField(
+        "User", on_delete=models.CASCADE, related_name="token"
+    )
     access_jwt = models.CharField(max_length=500)
     refresh_jwt = models.CharField(max_length=500)
-    access_expires_at = models.DateTimeField()
-    refresh_expires_at = models.DateTimeField()
+    access_expires_at = models.DateTimeField(default=default_access_expires)
+    refresh_expires_at = models.DateTimeField(default=default_refresh_expires)
     revoked = models.BooleanField(default=False, db_index=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
     is_auto_login = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -42,4 +42,4 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           envs: POSTGRES_HOST,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,DJANGO_SECRET_KEY,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_STORAGE_BUCKET_NAME,AWS_S3_REGION_NAME
           script: |
-            bash ~/Team4-Last-Backend/deploy.sh
+            bash ~/Team4-Last-Backend/scripts/deploy.sh
