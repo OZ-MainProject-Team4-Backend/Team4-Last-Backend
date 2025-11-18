@@ -114,6 +114,32 @@ class AiChatViewSet(viewsets.ViewSet):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="session_id",
+                type=OpenApiTypes.INT,
+                required=True,
+                location=OpenApiParameter.QUERY,
+                description="조회할 세션 ID",
+            ),
+            OpenApiParameter(
+                name="limit",
+                type=OpenApiTypes.INT,
+                required=False,
+                location=OpenApiParameter.QUERY,
+                description="가져올 로그 개수 (기본 20)",
+            ),
+            OpenApiParameter(
+                name="before_id",
+                type=OpenApiTypes.INT,
+                required=False,
+                location=OpenApiParameter.QUERY,
+                description="이 ID 보다 작은 로그만 조회 (무한스크롤)",
+            ),
+        ],
+        responses={200: OpenApiTypes.OBJECT},
+    )
     @action(detail=False, methods=["GET"], url_path="session")
     def session(self, request):
         sid_param = request.query_params.get("session_id")
@@ -180,6 +206,14 @@ class AiChatViewSet(viewsets.ViewSet):
                     "id": msg_id,
                     "role": "user",
                     "text": row["user_question"],
+                    "created_at": created_at,
+                }
+            )
+            out.append(
+                {
+                    "id": msg_id,
+                    "role": "ai",
+                    "text": row["ai_answer"],
                     "created_at": created_at,
                 }
             )
