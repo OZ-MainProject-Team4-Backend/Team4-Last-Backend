@@ -3,6 +3,8 @@ set +e
 
 echo "=== Starting deployment ==="
 
+cd ~/Team4-Last-Backend
+
 export DJANGO_SETTINGS_MODULE=settings.production
 
 # 환경변수 로드
