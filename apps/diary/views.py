@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from datetime import datetime, timedelta
 
@@ -29,7 +30,6 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 
 def safe_upload(file_obj, user_id):
-    # file_obj.name 체크
     if not getattr(file_obj, 'name', ''):
         raise ValidationError("업로드된 파일명이 없습니다.")
 
@@ -41,7 +41,9 @@ def safe_upload(file_obj, user_id):
 
     filename = f"{uuid.uuid4().hex}{ext}"
     key = f"diary/{user_id}/{filename}"
+    key = re.sub(r"[^A-Za-z0-9_\-./]", "_", key)
 
+    file_obj.seek(0)
     saved_path = default_storage.save(key, file_obj)
     return saved_path
 
