@@ -1,8 +1,8 @@
 import os
 from datetime import datetime, timedelta
 
-from django.db import transaction
 from django.core.files.storage import default_storage
+from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -25,6 +25,7 @@ from .serializers import (
 # ==========================
 ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
 
 def safe_upload(file_obj, path):
     # 1. 확장자 검사
@@ -160,7 +161,6 @@ class DiaryViewSet(viewsets.ModelViewSet):
                     pass
             serializer.validated_data["image"] = self.handle_file_upload(file_obj)
         serializer.save()
-
 
     def perform_destroy(self, instance):
         if instance.image:
