@@ -57,7 +57,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
         date = serializer.validated_data.get("date")
 
         today = datetime.now().date()
-        current_weather = None
+        current_weather = None   # 초기값 설정
 
         #  1. 날씨 데이터 조회
         try:
@@ -85,16 +85,21 @@ class DiaryViewSet(viewsets.ModelViewSet):
             current_weather = None  # 날씨 조회 실패시, 일기는 저장
 
         #  2. WeatherLocation 생성 or 갱신
-        raw = (
-            (current_weather or {}).get("raw", {})
+        city = (
+            current_weather.get("raw", {}).get("name")
             if isinstance(current_weather, dict)
-            else {}
-        )
-        city = raw.get("name", "") or ""
+            else ""
+        ) or ""
+        district = ""
+
         location, _ = WeatherLocation.objects.get_or_create(
-            lat=lat,
-            lon=lon,
-            defaults={"city": city, "district": "", "dp_name": city or f"{lat},{lon}"},
+            city=city,
+            district=district,
+            defaults={
+                "lat": lat,
+                "lon": lon,
+                "dp_name": city or f"{lat},{lon}",
+            },
         )
 
         #  3. WeatherData 저장 (repository 사용)
