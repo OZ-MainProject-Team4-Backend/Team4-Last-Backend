@@ -26,10 +26,13 @@ environ.Env.read_env(os.path.join(BASE_DIR, "env/.env.prod"))
 # ============ 기본 설정 ============
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="django-insecure-production-key")
 DEBUG = False
-ALLOWED_HOSTS = env.list(
-    "DJANGO_ALLOWED_HOSTS",
-    default=["team4.p-e.kr", "localhost", "127.0.0.1"],
-)
+ALLOWED_HOSTS = [
+    "team4.p-e.kr",
+    "www.team4.p-e.kr",
+    "localhost",
+    "127.0.0.1",
+]
+
 
 # ============ 데이터베이스 설정 (RDS PostgreSQL) ============
 DATABASES = {
