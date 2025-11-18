@@ -3,6 +3,7 @@ import re
 import uuid
 from datetime import datetime, timedelta
 
+from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import transaction
 from rest_framework import status, viewsets
@@ -30,36 +31,26 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 
 def safe_upload(file_obj, user_id):
-    # 1. 파일 존재 체크
-    if not file_obj:
+    if not file_obj or not getattr(file_obj, "name", ""):
         raise ValidationError("업로드된 파일이 없습니다.")
-    if not getattr(file_obj, "name", ""):
-        raise ValidationError("업로드된 파일명이 없습니다.")
 
-    # 2. 확장자 체크
     ext = os.path.splitext(file_obj.name)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise ValidationError(f"허용되지 않은 파일 확장자: {ext}")
     if file_obj.size > MAX_FILE_SIZE:
         raise ValidationError(f"파일 크기 제한 초과: {file_obj.size} bytes")
 
-    # 3. 안전한 Key 생성
     filename = f"{uuid.uuid4().hex}{ext}"
     key = f"diary/{user_id}/{filename}"
     key = re.sub(r"[^A-Za-z0-9_\-./]", "_", key)
+    key = re.sub(r"/+", "/", key)
 
-    # 4. 파일 포인터 초기화
     file_obj.seek(0)
 
-    # 5. ContentType 지정
-    content_type = getattr(file_obj, "content_type", None)
-    extra_args = {}
-    if content_type:
-        extra_args["ContentType"] = content_type
+    if getattr(file_obj, "content_type", None):
+        file_obj = ContentFile(file_obj.read(), name=filename)
 
-    # 6. S3 업로드
     try:
-        # default_storage.save는 django-storages에서 내부적으로 upload_fileobj 호출
         saved_path = default_storage.save(key, file_obj)
     except Exception as e:
         raise ValidationError(f"S3 업로드 실패: {str(e)}")
