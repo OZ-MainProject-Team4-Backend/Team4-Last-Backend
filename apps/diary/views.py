@@ -94,7 +94,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
         lon = serializer.validated_data.pop("lon", None)
         date = serializer.validated_data.get("date")
         today = datetime.now().date()
-        current_weather = None   # 초기값 설정
+        current_weather = None  # 초기값 설정
 
         #  1. 날씨 데이터 조회
         try:
