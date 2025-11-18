@@ -111,6 +111,7 @@ CORS_ALLOWED_ORIGINS = env.list(
         "https://team4.p-e.kr",
         "http://localhost:5173",
         "https://oz-main.vercel.app",
+        "https://www.team4.p-e.kr",
     ],
 )
 CORS_ALLOW_CREDENTIALS = True
@@ -140,6 +141,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://team4.p-e.kr",
     "http://localhost:5173",
     "https://oz-main.vercel.app",
+    "https://www.team4.p-e.kr",
 ]
 
 # ============ JWT 설정 ============
