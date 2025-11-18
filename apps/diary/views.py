@@ -45,7 +45,6 @@ def safe_upload(file_obj, user_id):
     key = re.sub(r"[^A-Za-z0-9_\-./]", "_", key)
     key = re.sub(r"/+", "/", key)
 
-
     if getattr(file_obj, "content_type", None):
         file_obj = ContentFile(file_obj.read(), name=filename)
 
