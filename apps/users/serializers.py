@@ -110,14 +110,13 @@ class SignupSerializer(serializers.ModelSerializer):
                 {"password": "비밀번호에 공백을 포함할 수 없습니다."}
             )
 
-        # 대문자, 소문자, 숫자 포함 확인
+        # 소문자, 숫자 포함 확인
         if (
             not any(c.islower() for c in pw)
-            or not any(c.isupper() for c in pw)
             or not any(c.isdigit() for c in pw)
         ):
             raise serializers.ValidationError(
-                {"password": "비밀번호는 영어 대문자, 소문자, 숫자를 조합해야 합니다."}
+                {"password": "비밀번호는 영어 소문자, 숫자를 조합해야 합니다."}
             )
 
         # 영어+숫자만 허용 확인 (특수문자 제외)
@@ -269,45 +268,58 @@ class FavoriteRegionsSerializer(serializers.Serializer):
 
         return value
 
+    class PasswordChangeSerializer(serializers.Serializer):
+        current_password = serializers.CharField(write_only=True, required=True)
+        new_password = serializers.CharField(write_only=True, required=True)
+        new_password_confirm = serializers.CharField(write_only=True, required=True)
 
-class PasswordChangeSerializer(serializers.Serializer):
-    current_password = serializers.CharField(write_only=True, required=True)
-    new_password = serializers.CharField(write_only=True, required=True)
-    new_password_confirm = serializers.CharField(write_only=True, required=True)
+        def validate(self, attrs):
+            request = self.context.get("request")
+            if request is None or not hasattr(request, "user"):
+                raise serializers.ValidationError("요청 정보가 올바르지 않습니다.")
 
-    def validate(self, attrs):
-        request = self.context.get("request")
-        if request is None or not hasattr(request, "user"):
-            raise serializers.ValidationError("요청 정보가 올바르지 않습니다.")
-        user = request.user
-        if not user.check_password(attrs.get("current_password", "")):
-            raise serializers.ValidationError(
-                {"current_password": "현재 비밀번호가 일치하지 않습니다."}
-            )
-        if attrs.get("new_password") != attrs.get("new_password_confirm"):
-            raise serializers.ValidationError(
-                {
-                    "new_password_confirm": "새 비밀번호와 확인 비밀번호가 일치하지 않습니다."
-                }
-            )
-        new_pw = attrs.get("new_password")
-        if not new_pw or len(new_pw) < 6 or len(new_pw) > 20:
-            raise serializers.ValidationError(
-                {"new_password": "비밀번호는 6자 이상 20자 이하로 입력해야 합니다."}
-            )
-        if " " in new_pw:
-            raise serializers.ValidationError(
-                {"new_password": "비밀번호에 공백을 포함할 수 없습니다."}
-            )
-        if not any(c.islower() for c in new_pw) or not any(c.isupper() for c in new_pw):
-            raise serializers.ValidationError(
-                {"new_password": "비밀번호는 영어 대문자와 소문자를 조합해야 합니다."}
-            )
-        if not all(c.isalpha() for c in new_pw):
-            raise serializers.ValidationError(
-                {"new_password": "비밀번호는 영어만 사용할 수 있습니다."}
-            )
-        return attrs
+            user = request.user
+            if not user.check_password(attrs.get("current_password", "")):
+                raise serializers.ValidationError(
+                    {"current_password": "현재 비밀번호가 일치하지 않습니다."}
+                )
+
+            if attrs.get("new_password") != attrs.get("new_password_confirm"):
+                raise serializers.ValidationError(
+                    {
+                        "new_password_confirm": "새 비밀번호와 확인 비밀번호가 일치하지 않습니다."
+                    }
+                )
+
+            new_pw = attrs.get("new_password")
+
+            # 길이 확인
+            if not new_pw or len(new_pw) < 6 or len(new_pw) > 20:
+                raise serializers.ValidationError(
+                    {"new_password": "비밀번호는 6자 이상 20자 이하로 입력해야 합니다."}
+                )
+
+            # 공백 확인
+            if " " in new_pw:
+                raise serializers.ValidationError(
+                    {"new_password": "비밀번호에 공백을 포함할 수 없습니다."}
+                )
+
+            # 소문자, 숫자 포함 확인 (대문자 제거!)
+            if not any(c.islower() for c in new_pw) or not any(
+                c.isdigit() for c in new_pw
+            ):
+                raise serializers.ValidationError(
+                    {"new_password": "비밀번호는 영어 소문자와 숫자를 조합해야 합니다."}
+                )
+
+            # 영어+숫자만 허용 확인 (특수문자 제외)
+            if not all(c.isalnum() for c in new_pw):
+                raise serializers.ValidationError(
+                    {"new_password": "비밀번호는 영어와 숫자만 사용할 수 있습니다."}
+                )
+
+            return attrs
 
     def save(self, **kwargs):
         request = self.context.get("request")
