@@ -80,6 +80,9 @@ AWS_S3_OBJECT_PARAMETERS = {
     "CacheControl": "max-age=86400",
 }
 
+AWS_S3_URL_PROTOCOL = "https"
+AWS_S3_SECURE_URLS = True
+
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
@@ -95,7 +98,7 @@ STATICFILES_STORAGE = "storages.backends.s3boto3.S3StaticStorage"
 MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
 DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
-AWS_DEFAULT_ACL = None
+AWS_DEFAULT_ACL = "public-read"
 
 # ============ 이메일 설정 ============
 EMAIL_BACKEND = env(
