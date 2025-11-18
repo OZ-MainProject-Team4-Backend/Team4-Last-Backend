@@ -93,8 +93,9 @@ class DiaryViewSet(viewsets.ModelViewSet):
         return queryset
 
     def handle_file_upload(self, file_obj):
-        from django.core.files.storage import default_storage
         import uuid
+
+        from django.core.files.storage import default_storage
 
         key = f"diary/{self.request.user.id}/{uuid.uuid4().hex}.{file_obj.name.split('.')[-1]}"
 
