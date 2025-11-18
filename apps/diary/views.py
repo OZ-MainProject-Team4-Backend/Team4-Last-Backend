@@ -201,8 +201,10 @@ class DiaryViewSet(viewsets.ModelViewSet):
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-#민수
+
+# 민수
 from storages.backends.s3boto3 import S3Boto3Storage
+
 
 class CustomS3Storage(S3Boto3Storage):
     def save(self, name, content, max_length=None):
