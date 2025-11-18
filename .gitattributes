@@ -1,0 +1,5 @@
+# 모든 파일은 자동 처리
+* text=auto eol=lf
+
+# Bash shell scripts -> 반드시 LF
+*.sh text eol=lf
