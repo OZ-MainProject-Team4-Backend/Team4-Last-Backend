@@ -20,31 +20,29 @@ from .serializers import (
     DiaryListSerializer,
     DiaryUpdateSerializer,
 )
+import uuid
 
 # 파일 업로드 방어 함수
 # ==========================
 ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
-def safe_upload(file_obj, path):
-    # 1. 확장자 검사
+def safe_upload(file_obj, user_id):
+    # file_obj.name 체크
+    if not getattr(file_obj, 'name', ''):
+        raise ValidationError("업로드된 파일명이 없습니다.")
+
     ext = os.path.splitext(file_obj.name)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise ValidationError(f"허용되지 않은 파일 확장자: {ext}")
-
-    # 2. 파일 크기 검사
     if file_obj.size > MAX_FILE_SIZE:
         raise ValidationError(f"파일 크기 제한 초과: {file_obj.size} bytes")
 
-    # 3. content_type 확인 (옵션)
-    content_type = getattr(file_obj, "content_type", None)
-    extra_args = {}
-    if content_type:
-        extra_args["ContentType"] = content_type
+    filename = f"{uuid.uuid4().hex}{ext}"
+    key = f"diary/{user_id}/{filename}"
 
-    # 4. 파일 저장 (중복 방지)
-    filename = default_storage.save(path, file_obj)
-    return filename
+    saved_path = default_storage.save(key, file_obj)
+    return saved_path
 
 
 class DiaryViewSet(viewsets.ModelViewSet):
@@ -78,8 +76,8 @@ class DiaryViewSet(viewsets.ModelViewSet):
         return queryset
 
     def handle_file_upload(self, file_obj):
-        file_path = f"diary/{self.request.user.id}"
-        return safe_upload(file_obj, file_path)
+        return safe_upload(file_obj, self.request.user.id)
+
 
     @transaction.atomic  # 날씨 저장 중 오류 발생 시 일기까지 저장되지 않도록 롤백
     def perform_create(self, serializer):
@@ -155,7 +153,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
         if file_obj:
             if serializer.instance.image:
                 try:
-                    default_storage.delete(serializer.instance.image.path)
+                    default_storage.delete(serializer.instance.image.name)
                 except Exception:
                     pass
             serializer.validated_data["image"] = self.handle_file_upload(file_obj)
