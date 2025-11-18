@@ -48,8 +48,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         ("60+", "Other"),
     )
     GENDER_CHOICES = (
-        ("Woman", "여성"),
-        ("Man", "남성"),
+        ("W", "여성"),
+        ("M", "남성"),
         ("0", "기타"),
     )
 
