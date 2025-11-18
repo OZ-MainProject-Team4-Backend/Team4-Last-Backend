@@ -69,7 +69,11 @@ class AiModelSettings(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.name} ({self.temperature_min} ~ {self.temperature_max}°C, {self.humidity_min} ~ {self.humidity_max}%, {self.weather_condition or 'ANY'})"
+        return (
+            f"{self.name} ({self.temperature_min} ~ {self.temperature_max}°C, "
+            f"{self.humidity_min} ~ {self.humidity_max}%, "
+            f"{self.weather_condition or 'ANY'})"
+        )
 
 
 class AiChatLogs(models.Model):
@@ -87,7 +91,13 @@ class AiChatLogs(models.Model):
         on_delete=models.SET_NULL,
         related_name="logs",
     )
-    session_id = models.UUIDField(default=uuid.uuid4, db_index=True)
+    session = models.ForeignKey(
+        "ChatSession",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="logs",
+    )
     model_name = models.CharField(max_length=100, blank=True)
     user_question = models.TextField()
     ai_answer = models.TextField()
@@ -99,7 +109,26 @@ class AiChatLogs(models.Model):
 
     class Meta:
         db_table = "ai_chat_logs"
-        indexes = [models.Index(fields=["user", "session_id", "-created_at"])]
+        indexes = [models.Index(fields=["user", "session", "-created_at"])]
 
     def __str__(self):
         return f"{self.user_id}/{self.session_id} - {self.created_at:%Y-%m-%d %H:%M:%S}"
+
+
+class ChatSession(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="chat_sessions",
+    )
+    session_uuid = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "chat_session"
+
+    def __str__(self):
+        return f"{self.id} ({self.session_uuid})"
