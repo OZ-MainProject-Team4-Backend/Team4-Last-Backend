@@ -53,11 +53,13 @@ def safe_upload(file_obj, user_id):
         extra_args = {}
         if getattr(file_obj, "content_type", None):
             extra_args["ContentType"] = file_obj.content_type
+
         bucket.Object(key).put(Body=file_obj, **extra_args)
+
     except Exception as e:
         raise ValidationError(f"S3 업로드 실패: {str(e)}")
 
-    return default_storage.url(key)
+    return f"https://{default_storage.bucket_name}.s3.{default_storage.region_name}.amazonaws.com/{key}"
 
 
 class DiaryViewSet(viewsets.ModelViewSet):
@@ -110,22 +112,16 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
         #  1. 날씨 데이터 조회
         try:
-            # 오늘 → 현재 날씨 API(openweather.py - get_current() 호출)
             if lat is not None and lon is not None:
                 if date == today:
                     current_weather = ow.get_current(lat=lat, lon=lon)
-
-                # 5일 이내 과거 → Timemachine API(openweather.py - get_historical() 호출)
                 elif today - timedelta(days=5) <= date < today:
                     dt = datetime.combine(date, datetime.min.time())
                     current_weather = ow.get_historical(lat=lat, lon=lon, date=dt)
-
-                # 6일 이상 과거 → 날씨 없음
                 else:
                     current_weather = None
             else:
                 current_weather = None
-
         except ow.ProviderTimeout:
             raise ValidationError({"detail": "weather_provider_timeout"})
         except ow.ProviderError as e:
