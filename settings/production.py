@@ -29,6 +29,7 @@ DEBUG = False
 ALLOWED_HOSTS = env.list(
     "DJANGO_ALLOWED_HOSTS",
     default=["team4.p-e.kr", "localhost", "127.0.0.1"],
+
 )
 
 # ============ 데이터베이스 설정 (RDS PostgreSQL) ============
@@ -107,7 +108,11 @@ FRONTEND_URL = env("FRONTEND_URL", default="https://team4.p-e.kr")
 # ============ CORS 설정 ============
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
-    default=["https://team4.p-e.kr", "http://localhost:5173","https://oz-main.vercel.app"],
+    default=[
+        "https://team4.p-e.kr",
+        "http://localhost:5173",
+        "https://oz-main.vercel.app",
+    ],
 )
 CORS_ALLOW_CREDENTIALS = True
 
