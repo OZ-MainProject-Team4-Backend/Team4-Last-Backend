@@ -111,10 +111,7 @@ class SignupSerializer(serializers.ModelSerializer):
             )
 
         # 소문자, 숫자 포함 확인
-        if (
-            not any(c.islower() for c in pw)
-            or not any(c.isdigit() for c in pw)
-        ):
+        if not any(c.islower() for c in pw) or not any(c.isdigit() for c in pw):
             raise serializers.ValidationError(
                 {"password": "비밀번호는 영어 소문자, 숫자를 조합해야 합니다."}
             )
@@ -268,6 +265,7 @@ class FavoriteRegionsSerializer(serializers.Serializer):
 
         return value
 
+
 class PasswordChangeSerializer(serializers.Serializer):
     current_password = serializers.CharField(write_only=True, required=True)
     new_password = serializers.CharField(write_only=True, required=True)
@@ -306,9 +304,7 @@ class PasswordChangeSerializer(serializers.Serializer):
             )
 
         # 소문자, 숫자 포함 확인 (대문자 제거!)
-        if not any(c.islower() for c in new_pw) or not any(
-             c.isdigit() for c in new_pw
-        ):
+        if not any(c.islower() for c in new_pw) or not any(c.isdigit() for c in new_pw):
             raise serializers.ValidationError(
                 {"new_password": "비밀번호는 영어 소문자와 숫자를 조합해야 합니다."}
             )
