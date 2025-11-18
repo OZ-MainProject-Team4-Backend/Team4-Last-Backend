@@ -93,7 +93,18 @@ class DiaryViewSet(viewsets.ModelViewSet):
         return queryset
 
     def handle_file_upload(self, file_obj):
-        return safe_upload(file_obj, self.request.user.id)
+        from django.core.files.storage import default_storage
+        import uuid
+
+        key = f"diary/{self.request.user.id}/{uuid.uuid4().hex}.{file_obj.name.split('.')[-1]}"
+
+        # S3 업로드 시 ACL 추가
+        saved_path = default_storage.save(
+            key,
+            file_obj,
+            extra_args={"ACL": "public-read"},  # ← 여기서 권한 설정
+        )
+        return saved_path
 
     @transaction.atomic  # 날씨 저장 중 오류 발생 시 일기까지 저장되지 않도록 롤백
     def perform_create(self, serializer):
