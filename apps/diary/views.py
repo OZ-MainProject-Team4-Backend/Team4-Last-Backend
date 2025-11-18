@@ -1,8 +1,10 @@
 import os
+import re
+import uuid
 from datetime import datetime, timedelta
 
-from django.db import transaction
 from django.core.files.storage import default_storage
+from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -20,13 +22,12 @@ from .serializers import (
     DiaryListSerializer,
     DiaryUpdateSerializer,
 )
-import uuid
-import re
 
 # 파일 업로드 방어 함수
 # ==========================
 ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
 
 def safe_upload(file_obj, user_id):
     if not getattr(file_obj, 'name', ''):
@@ -79,7 +80,6 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
     def handle_file_upload(self, file_obj):
         return safe_upload(file_obj, self.request.user.id)
-
 
     @transaction.atomic  # 날씨 저장 중 오류 발생 시 일기까지 저장되지 않도록 롤백
     def perform_create(self, serializer):
@@ -160,7 +160,6 @@ class DiaryViewSet(viewsets.ModelViewSet):
                     pass
             serializer.validated_data["image"] = self.handle_file_upload(file_obj)
         serializer.save()
-
 
     def perform_destroy(self, instance):
         if instance.image:
