@@ -59,8 +59,7 @@ def safe_upload(file_obj, user_id):
     except Exception as e:
         raise ValidationError(f"S3 업로드 실패: {str(e)}")
 
-    bucket = default_storage.bucket  # S3 Bucket 객체
-    return f"https://{bucket.name}.s3.{bucket.meta.client.meta.region_name}.amazonaws.com/{key}"
+    return key
 
 
 class DiaryViewSet(viewsets.ModelViewSet):
