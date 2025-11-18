@@ -107,13 +107,18 @@ FRONTEND_URL = env("FRONTEND_URL", default="https://team4.p-e.kr")
 # ============ CORS 설정 ============
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
-    default=["https://team4.p-e.kr", "http://localhost:5173"],
+    default=[
+        "https://team4.p-e.kr",
+        "http://localhost:5173",
+        "https://oz-main.vercel.app",
+    ],
 )
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "https://team4.p-e.kr",
     "http://localhost:5173",
+    "https://oz-main.vercel.app",
 ]
 
 # ============ JWT 설정 ============
