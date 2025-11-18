@@ -105,10 +105,13 @@ SOCIAL_PROVIDERS["kakao"]["redirect_uri"] = env("KAKAO_REDIRECT_URI", default=""
 FRONTEND_URL = env("FRONTEND_URL", default="https://team4.p-e.kr")
 
 # ============ CORS 설정 ============
-CORS_ALLOWED_ORIGINS = env.list(
-    "CORS_ALLOWED_ORIGINS",
-    default=["https://team4.p-e.kr", "http://localhost:5173","https://oz-main.vercel.app","https://www.team4.p-e.kr",],
-)
+CORS_ALLOWED_ORIGINS = [
+    "https://team4.p-e.kr",
+    "http://localhost:5173",
+    "https://oz-main.vercel.app",
+    "https://www.team4.p-e.kr",
+]
+
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
