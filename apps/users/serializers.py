@@ -78,7 +78,6 @@ class EmailVerifySerializer(serializers.Serializer):
 class SignupSerializer(serializers.ModelSerializer):
     age = serializers.CharField(write_only=True, required=False, allow_blank=True)
     gender = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    password_confirm = serializers.CharField(write_only=True)
     nickname = serializers.CharField(required=False, allow_blank=True, max_length=20)
 
     class Meta:
@@ -86,7 +85,6 @@ class SignupSerializer(serializers.ModelSerializer):
         fields = [
             "email",
             "password",
-            "password_confirm",
             "nickname",
             "name",
             "age",
@@ -99,13 +97,6 @@ class SignupSerializer(serializers.ModelSerializer):
 
     def validate(self, data: Dict):
         pw = data.get("password")
-        pwc = data.get("password_confirm")
-
-        # 비밀번호 일치 확인
-        if pw != pwc:
-            raise serializers.ValidationError(
-                {"password_confirm": "비밀번호가 일치하지 않습니다."}
-            )
 
         # 길이 확인
         if not pw or len(pw) < 6 or len(pw) > 20:
@@ -160,9 +151,6 @@ class SignupSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data: Dict) -> User:
-        # password_confirm 제거
-        validated_data.pop("password_confirm", None)
-
         # password와 age, gender 추출 및 제거
         raw_pw = validated_data.pop("password")
         raw_age = validated_data.pop("age", None)
@@ -242,6 +230,7 @@ class LoginSerializer(serializers.Serializer):
 
 
 class LoginResponseSerializer(serializers.Serializer):
+    user = serializers.DictField()
     access = serializers.CharField()
     access_expires_at = serializers.DateTimeField()
     is_auto_login = serializers.BooleanField()
@@ -382,7 +371,6 @@ class TokenSerializer(serializers.ModelSerializer):
             "refresh_expires_at",
             "revoked",
             "created_at",
-            "updated_at",
         ]
         read_only_fields = [
             "id",
@@ -391,7 +379,6 @@ class TokenSerializer(serializers.ModelSerializer):
             "access_expires_at",
             "refresh_expires_at",
             "created_at",
-            "updated_at",
         ]
 
 
