@@ -31,6 +31,7 @@ ALLOWED_HOSTS = [
     "www.team4.p-e.kr",
     "localhost",
     "127.0.0.1",
+    "52.79.215.24",
 ]
 
 
