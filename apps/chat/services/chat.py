@@ -7,7 +7,7 @@ from django.db import transaction
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
-from apps.chat.models import AiChatLogs, AiModelSettings
+from apps.chat.models import AiChatLogs, AiModelSettings, ChatSession
 from apps.chat.services.model_picker import pick_model_setting
 from apps.recommend.services.recommend_service import build_outfit_by_temp_and_cond
 
@@ -23,7 +23,7 @@ def _msg(role: str, content: str) -> ChatCompletionMessageParam:
 def chat_and_log(
     *,
     user,
-    session_id,
+    session: ChatSession,
     user_message: str,
     weather: Dict[str, Any] | None,
     profile: Dict[str, Any] | None,
@@ -112,7 +112,7 @@ def chat_and_log(
         log: AiChatLogs = AiChatLogs.objects.create(
             user=user,
             model_setting=setting,
-            session_id=session_id,
+            session=session,
             model_name=model_name,
             user_question=user_message,
             ai_answer=final_answer,
@@ -125,7 +125,7 @@ def chat_and_log(
         )
 
         return {
-            "session_id": str(session_id),
+            "session_id": session.id,
             "answer": final_answer,
             "used_setting": setting.category_combo if setting else None,
             "log_id": log.id,
@@ -139,7 +139,7 @@ def chat_and_log(
     logger.info(">>> GPT BRANCH HIT")
 
     recent = list(
-        AiChatLogs.objects.filter(user=user, session_id=session_id)
+        AiChatLogs.objects.filter(user=user, session=session)
         .order_by("-created_at")
         .values_list("user_question", "ai_answer")[:3]
     )
@@ -198,7 +198,7 @@ def chat_and_log(
     log2: AiChatLogs = AiChatLogs.objects.create(
         user=user,
         model_setting=setting,
-        session_id=session_id,
+        session=session,
         model_name=model_name,
         user_question=user_message,
         ai_answer=gpt_answer,
@@ -210,7 +210,7 @@ def chat_and_log(
     )
 
     return {
-        "session_id": str(session_id),
+        "session_id": session.id,
         "answer": gpt_answer,
         "used_setting": setting.category_combo if setting else None,
         "log_id": log2.id,

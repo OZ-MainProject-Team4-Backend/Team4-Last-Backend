@@ -1,14 +1,22 @@
 import logging
 import uuid
+from datetime import timedelta
 
 from django.utils import timezone
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiTypes,
+    extend_schema,
+)
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.chat.models import AiChatLogs
+from apps.chat.models import AiChatLogs, ChatSession
 from apps.chat.serializers import AiChatLogReadSerializer, ChatSendSerializer
 from apps.chat.services.chat import chat_and_log
+from apps.chat.services.weather_for_chat import get_weather_for_chat
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +24,17 @@ logger = logging.getLogger(__name__)
 class AiChatViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        request=ChatSendSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+        examples=[
+            OpenApiExample(
+                '기본 요청 예시',
+                value={"message": "오늘 뭐 입지?"},
+                request_only=True,
+            )
+        ],
+    )
     @action(detail=False, methods=["POST"], url_path="send")
     def send(self, request):
         ser = ChatSendSerializer(data=request.data)
@@ -24,29 +43,57 @@ class AiChatViewSet(viewsets.ViewSet):
         user = request.user if request.user.is_authenticated else None
         weather = ser.validated_data.get("weather")
         profile = ser.validated_data.get("profile")
-        today = timezone.localdate()
+        text = (
+            ser.validated_data.get("detail") or ser.validated_data.get("message") or ""
+        )
+
+        SESSION_TTL_MINUTES = 10
 
         session_id = ser.validated_data.get("session_id")
+        chat_session = None
 
-        if user and not session_id:
-            existing_sid = (
-                AiChatLogs.objects.filter(user=user, created_at__date=today)
-                .order_by("-created_at")
-                .values_list("session_id", flat=True)
-                .first()
+        if not weather:
+            try:
+                weather = get_weather_for_chat(user)
+            except Exception:
+                logger.exception("get_weather_for_chat failed")
+                weather = None
+
+        if session_id is not None:
+            chat_session = ChatSession.objects.filter(id=session_id).first()
+            if chat_session is None:
+                return Response(
+                    {
+                        "error": "세션을 찾을 수 없습니다.",
+                        "error_status": "session_not_found",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        if chat_session is None and user is not None:
+            last_session = (
+                ChatSession.objects.filter(user=user).order_by("-created_at").first()
             )
-            if existing_sid:
-                session_id = str(existing_sid)
 
-        if not session_id:
-            session_id = str(uuid.uuid4())
+            if last_session:
+                last_log = (
+                    AiChatLogs.objects.filter(session=last_session)
+                    .order_by("-created_at")
+                    .first()
+                )
 
-        text = ser.validated_data.get("detail") or ser.validated_data.get("message")
+                if last_log and last_log.created_at >= timezone.now() - timedelta(
+                    minutes=SESSION_TTL_MINUTES
+                ):
+                    chat_session = last_session
+
+        if chat_session is None:
+            chat_session = ChatSession.objects.create(user=user)
 
         try:
             result = chat_and_log(
                 user=user,
-                session_id=session_id,
+                session=chat_session,
                 user_message=text,
                 weather=weather,
                 profile=profile,
@@ -55,13 +102,13 @@ class AiChatViewSet(viewsets.ViewSet):
             return Response(
                 {
                     "response": result["answer"],
-                    "session_id": str(session_id),
+                    "session_id": chat_session.id,
                     "created_at": timezone.localtime(result["created_at"]).isoformat(),
                 },
                 status=status.HTTP_200_OK,
             )
         except Exception:
-            logger.exception("chat send failed")
+            logger.exception("chat send faild")
             return Response(
                 {"error": "AI 대화 실패", "error_status": "chat_failed"},
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -74,28 +121,31 @@ class AiChatViewSet(viewsets.ViewSet):
         before_id = request.query_params.get("before_id")
         today = timezone.localdate()
 
-        user = request.user if request.user.is_authenticated else None
-
-        if sid_param:
-            session_id = sid_param
-        else:
-            if not user:
-                return Response(
-                    {"error": "세션 없음", "error_status": "session_empty"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            last_sid = (
-                AiChatLogs.objects.filter(user=user, created_at__date=today)
-                .order_by("-created_at")
-                .values_list("session_id", flat=True)
-                .first()
+        if not sid_param:
+            return Response(
+                {
+                    "error": "session_id 파라미터가 필요합니다.",
+                    "error_status": "session_required",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            if not last_sid:
-                return Response(
-                    {"error": "세션 없음", "error_status": "session_empty"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            session_id = str(last_sid)
+
+        try:
+            session_id = int(sid_param)
+        except ValueError:
+            return Response(
+                {
+                    "error": "session_id 는 숫자여야 합니다.",
+                    "error_status": "invalid_session_id",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not ChatSession.objects.filter(id=session_id).exists():
+            return Response(
+                {"error": "세션 없음", "error_status": "session_empty"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         qs = AiChatLogs.objects.filter(
             session_id=session_id,
@@ -103,7 +153,11 @@ class AiChatViewSet(viewsets.ViewSet):
         )
 
         if before_id:
-            qs = qs.filter(id__lt=before_id)
+            try:
+                before_id_int = int(before_id)
+                qs = qs.filter(id__lt=before_id_int)
+            except ValueError:
+                pass
 
         qs = qs.order_by("-created_at")[:limit]
 
@@ -126,14 +180,6 @@ class AiChatViewSet(viewsets.ViewSet):
                     "id": msg_id,
                     "role": "user",
                     "text": row["user_question"],
-                    "created_at": created_at,
-                }
-            )
-            out.append(
-                {
-                    "id": msg_id,
-                    "role": "ai",
-                    "text": row["ai_answer"],
                     "created_at": created_at,
                 }
             )
