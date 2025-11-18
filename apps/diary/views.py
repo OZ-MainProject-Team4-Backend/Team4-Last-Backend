@@ -2,6 +2,7 @@ import os
 import re
 import uuid
 from datetime import datetime, timedelta
+
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import transaction
@@ -10,7 +11,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.core.files.base import ContentFile
+
 from apps.weather import repository as weather_repo
 from apps.weather.models import WeatherLocation
 from apps.weather.services import openweather as ow
