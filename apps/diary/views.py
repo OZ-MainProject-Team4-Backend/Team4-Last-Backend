@@ -123,3 +123,17 @@ class DiaryViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def handle_file_upload(self, file_obj):
+        from django.core.files.storage import default_storage
+        import uuid
+
+        key = f"diary/{self.request.user.id}/{uuid.uuid4().hex}.{file_obj.name.split('.')[-1]}"
+
+        # S3 업로드 시 ACL 추가
+        saved_path = default_storage.save(
+            key,
+            file_obj,
+            extra_args={'ACL': 'public-read'}  # ← 여기서 권한 설정
+        )
+        return saved_path
