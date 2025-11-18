@@ -57,19 +57,23 @@ class DiaryViewSet(viewsets.ModelViewSet):
         date = serializer.validated_data.get("date")
 
         today = datetime.now().date()
+        current_weather = None
 
         #  1. 날씨 데이터 조회
         try:
             # 오늘 → 현재 날씨 API(openweather.py - get_current() 호출)
-            if date == today:
-                current_weather = ow.get_current(lat=lat, lon=lon)
+            if lat is not None and lon is not None:
+                if date == today:
+                    current_weather = ow.get_current(lat=lat, lon=lon)
 
-            # 5일 이내 과거 → Timemachine API(openweather.py - get_historical() 호출)
-            elif today - timedelta(days=5) <= date < today:
-                dt = datetime.combine(date, datetime.min.time())
-                current_weather = ow.get_historical(lat=lat, lon=lon, date=dt)
+                # 5일 이내 과거 → Timemachine API(openweather.py - get_historical() 호출)
+                elif today - timedelta(days=5) <= date < today:
+                    dt = datetime.combine(date, datetime.min.time())
+                    current_weather = ow.get_historical(lat=lat, lon=lon, date=dt)
 
-            # 6일 이상 과거 → 날씨 없음
+                # 6일 이상 과거 → 날씨 없음
+                else:
+                    current_weather = None
             else:
                 current_weather = None
 
@@ -81,7 +85,12 @@ class DiaryViewSet(viewsets.ModelViewSet):
             current_weather = None  # 날씨 조회 실패시, 일기는 저장
 
         #  2. WeatherLocation 생성 or 갱신
-        city = (current_weather.get("raw") or {}).get("name") or ""
+        raw = (
+            (current_weather or {}).get("raw", {})
+            if isinstance(current_weather, dict)
+            else {}
+        )
+        city = raw.get("name", "") or ""
         location, _ = WeatherLocation.objects.get_or_create(
             lat=lat,
             lon=lon,
@@ -90,7 +99,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
         #  3. WeatherData 저장 (repository 사용)
         weather_data = None
-        if current_weather:
+        if current_weather and isinstance(current_weather, dict):
             weather_data = weather_repo.save_current(
                 location=location, current=current_weather
             )
