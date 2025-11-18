@@ -45,17 +45,19 @@ def safe_upload(file_obj, user_id):
     key = re.sub(r"[^A-Za-z0-9_\-./]", "_", key)
     key = re.sub(r"/+", "/", key)
 
-    file_obj.seek(0)
-
     if getattr(file_obj, "content_type", None):
         file_obj = ContentFile(file_obj.read(), name=filename)
 
     try:
-        saved_path = default_storage.save(key, file_obj)
+        bucket = default_storage.bucket
+        extra_args = {}
+        if getattr(file_obj, "content_type", None):
+            extra_args["ContentType"] = file_obj.content_type
+        bucket.Object(key).put(Body=file_obj, **extra_args)
     except Exception as e:
         raise ValidationError(f"S3 업로드 실패: {str(e)}")
 
-    return default_storage.url(saved_path)
+    return default_storage.url(key)
 
 
 class DiaryViewSet(viewsets.ModelViewSet):
