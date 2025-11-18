@@ -28,11 +28,8 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", default="django-insecure-production-key")
 DEBUG = False
 ALLOWED_HOSTS = env.list(
     "DJANGO_ALLOWED_HOSTS",
-    default=[
-        "team4.p-e.kr",
-        "localhost",
-        "127.0.0.1",
-    ],
+    default=["team4.p-e.kr", "localhost", "127.0.0.1"],
+
 )
 
 # ============ 데이터베이스 설정 (RDS PostgreSQL) ============
