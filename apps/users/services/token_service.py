@@ -10,6 +10,7 @@ from ..models import Token
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
+
 def create_jwt_pair_for_user(user, is_auto_login: bool = False):
     """JWT 토큰 쌍(Access, Refresh) 생성"""
     refresh = RefreshToken.for_user(user)
@@ -21,11 +22,15 @@ def create_jwt_pair_for_user(user, is_auto_login: bool = False):
 
     # JWT의 exp를 datetime으로 변환
     access_exp_timestamp = access_token_obj.get("exp")
-    access_expires_at = datetime.utcfromtimestamp(access_exp_timestamp)  # ✅ tzinfo 제거
+    access_expires_at = datetime.utcfromtimestamp(
+        access_exp_timestamp
+    )  # ✅ tzinfo 제거
 
     if is_auto_login:
         refresh_exp_timestamp = token_obj.get("exp")
-        refresh_expires_at = datetime.utcfromtimestamp(refresh_exp_timestamp)  # ✅ tzinfo 제거
+        refresh_expires_at = datetime.utcfromtimestamp(
+            refresh_exp_timestamp
+        )  # ✅ tzinfo 제거
     else:
         refresh_expires_at = timezone.now() + timedelta(days=1)
 
