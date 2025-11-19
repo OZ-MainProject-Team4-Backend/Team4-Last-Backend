@@ -5,7 +5,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from .models import SocialAccount, Token, User
+from .models import SocialAccount, Token, User as UserModel
 
 User = get_user_model()
 
