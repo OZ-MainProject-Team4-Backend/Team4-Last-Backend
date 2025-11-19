@@ -169,7 +169,6 @@ def signup_user_service(validated_data: dict):
             status.HTTP_400_BAD_REQUEST,
         )
 
-
     user_data = {
         "email": email,
         "password": validated_data.get("password"),

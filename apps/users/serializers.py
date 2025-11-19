@@ -18,6 +18,7 @@ UserModel = get_user_model()
 if TYPE_CHECKING:
     from apps.users.models import User
 
+
 # ==============================
 # 유틸 함수
 # ==============================
@@ -65,6 +66,7 @@ def map_gender(gender_value: Optional[str]) -> Optional[str]:
     if v in ("male", "man", "남성", "m"):
         return "M"
     return "0"
+
 
 # ==============================
 # Serializer 정의
