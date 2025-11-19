@@ -126,6 +126,7 @@ def verify_email_code_service(
 # ============ Signup Service ============
 from django.db import transaction
 
+
 @transaction.atomic
 def signup_user_service(validated_data: dict):
     """사용자 회원가입"""
@@ -168,6 +169,7 @@ def signup_user_service(validated_data: dict):
             status.HTTP_400_BAD_REQUEST,
         )
 
+
     user_data = {
         "email": email,
         "password": validated_data.get("password"),
@@ -184,7 +186,6 @@ def signup_user_service(validated_data: dict):
     cache.delete(key_preverified(email))
 
     return True, get_user_data(user), None, None, 201
-
 
 
 # ============ Login Service ============

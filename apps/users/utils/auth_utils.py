@@ -35,6 +35,7 @@ def key_nickname_valid(nickname: str):
     """닉네임 유효성 캐시 키"""
     return f"nickname_valid:{nickname.lower()}"
 
+
 def get_user_data(user):
     """사용자 데이터 포맷팅"""
     gender_display = {

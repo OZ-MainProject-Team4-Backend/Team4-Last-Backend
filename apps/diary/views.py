@@ -115,14 +115,11 @@ class DiaryViewSet(viewsets.ModelViewSet):
         try:
             if lat is not None and lon is not None:
                 if date == today:
-                    current_weather = ow.get_current(lat=lat, lon=lon)
-                elif today - timedelta(days=5) <= date < today:
-                    dt = datetime.combine(date, datetime.min.time())
-                    current_weather = ow.get_historical(lat=lat, lon=lon, date=dt)
+                    current_weather = ow.get_current(
+                        lat=lat, lon=lon
+                    )  # 다이어리 작성시, 현재 날씨 불러오기
                 else:
                     current_weather = None
-            else:
-                current_weather = None
         except ow.ProviderTimeout:
             raise ValidationError({"detail": "weather_provider_timeout"})
         except ow.ProviderError as e:

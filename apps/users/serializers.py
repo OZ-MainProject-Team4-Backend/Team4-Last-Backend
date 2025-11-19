@@ -1,4 +1,4 @@
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Optional
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
@@ -137,9 +137,12 @@ class SignupSerializer(serializers.ModelSerializer):
             )
 
         nickname = data.get("nickname")
-        if nickname and UserModel.objects.filter(
-            nickname__iexact=nickname, deleted_at__isnull=True
-        ).exists():
+        if (
+            nickname
+            and UserModel.objects.filter(
+                nickname__iexact=nickname, deleted_at__isnull=True
+            ).exists()
+        ):
             raise serializers.ValidationError(
                 {"nickname": "이미 사용중인 닉네임입니다."}
             )
@@ -175,7 +178,9 @@ class SignupSerializer(serializers.ModelSerializer):
             return user
         except TypeError:
             try:
-                user = UserModel.objects.create_user(email=email, password=raw_pw, **extra)
+                user = UserModel.objects.create_user(
+                    email=email, password=raw_pw, **extra
+                )
                 return user
             except Exception:
                 validated_password = make_password(raw_pw)
