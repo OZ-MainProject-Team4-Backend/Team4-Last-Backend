@@ -237,7 +237,7 @@ class LoginResponseSerializer(serializers.Serializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
+        model = UserModel
         fields = ["id", "email", "nickname", "gender", "age_group"]
         read_only_fields = ["id", "email"]
 
