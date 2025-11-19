@@ -1,5 +1,5 @@
 from datetime import timedelta
-
+from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -54,9 +54,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
 
     id = models.AutoField(primary_key=True)
-    email = models.EmailField(
-        max_length=150, unique=True, null=False, db_index=True
-    )  # ✅ unique=True 유지
+    email = models.EmailField(max_length=150, unique=True, null=False, db_index=True)
     password = models.CharField(max_length=255)
     name = models.CharField(max_length=100, blank=True, null=True)
     nickname = models.CharField(max_length=50, blank=True, null=True, db_index=True)
@@ -99,6 +97,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         indexes = [
             models.Index(fields=["email"]),
             models.Index(fields=["nickname"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["email"],
+                condition=Q(deleted_at__isnull=True),
+                name="unique_active_email",
+            )
         ]
 
     def __str__(self):

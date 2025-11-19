@@ -18,7 +18,6 @@ UserModel = get_user_model()
 if TYPE_CHECKING:
     from apps.users.models import User
 
-
 # ==============================
 # 유틸 함수
 # ==============================
@@ -66,7 +65,6 @@ def map_gender(gender_value: Optional[str]) -> Optional[str]:
     if v in ("male", "man", "남성", "m"):
         return "M"
     return "0"
-
 
 # ==============================
 # Serializer 정의
@@ -208,8 +206,8 @@ class LoginSerializer(serializers.Serializer):
         password = data.get("password")
 
         try:
-            user = User.objects.get(email__iexact=email, deleted_at__isnull=True)
-        except User.DoesNotExist:
+            user = UserModel.objects.get(email__iexact=email, deleted_at__isnull=True)
+        except UserModel.DoesNotExist:
             raise serializers.ValidationError(
                 "로그인 실패: 이메일 또는 비밀번호가 올바르지 않습니다."
             )
@@ -273,8 +271,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class FavoriteRegionsSerializer(serializers.Serializer):
-    """즐겨찾는 지역 수정 시리얼라이저"""
-
     favorite_regions = serializers.ListField(
         child=serializers.CharField(max_length=50),
         required=True,
