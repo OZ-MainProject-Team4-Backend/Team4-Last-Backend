@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
+from pytz import UTC
 
 from ..models import Token
 
