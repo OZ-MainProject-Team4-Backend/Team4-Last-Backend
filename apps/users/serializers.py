@@ -234,7 +234,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         allow_blank=True,
     )
     gender = serializers.ChoiceField(
-        choices=[("", ""), ("W", "여성"), ("M", "남성"), ("0", "기타")],
+        choices=[
+            ("", ""),
+            ("W", "여성"),
+            ("M", "남성"),
+            ("0", "기타"),
+        ],
         required=False,
         allow_null=True,
         allow_blank=True,
@@ -246,25 +251,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "email"]
 
     def update(self, instance, validated_data):
-        # gender 안전하게 매핑
-        gender = validated_data.pop("gender", None)
-        if gender:  # None이나 빈 문자열 제외
-            instance.gender = map_gender(gender) or instance.gender
+        # gender 업데이트
+        if "gender" in validated_data:
+            gender_value = validated_data.pop("gender")
+            instance.gender = map_gender(gender_value)  # None, 빈 문자열도 처리됨
 
-        # age_group 안전하게 매핑
-        age_group = validated_data.pop("age_group", None)
-        if age_group:  # None이나 빈 문자열 제외
-            mapped_age = map_age_to_group(age_group)
-            if mapped_age:
-                instance.age_group = mapped_age
+        # age_group 업데이트
+        if "age_group" in validated_data:
+            age_value = validated_data.pop("age_group")
+            instance.age_group = map_age_to_group(age_value)  # None, 빈 문자열도 처리됨
 
-        # 나머지 필드 간결하게 적용
+        # 나머지 필드 적용
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        instance.save(
-            update_fields=list(validated_data.keys()) + ["gender", "age_group"]
-        )
+        instance.save()
+
         return instance
 
 
