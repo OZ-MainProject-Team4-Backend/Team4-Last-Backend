@@ -63,3 +63,6 @@ def get_weather_for_chat(
         or cur2.get("rain_probability")
         or 0,
     }
+
+
+#
