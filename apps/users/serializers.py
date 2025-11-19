@@ -1,18 +1,27 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, TYPE_CHECKING
 
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
 from .models import SocialAccount, Token
 
-from typing import TYPE_CHECKING
+# ==============================
+# 런타임용 User 모델
+# ==============================
+UserModel = get_user_model()
 
+# ==============================
+# 타입체크용 User 모델
+# ==============================
 if TYPE_CHECKING:
     from apps.users.models import User
 
 
+# ==============================
+# 유틸 함수
+# ==============================
 def map_age_to_group(age_value: Optional[str]) -> Optional[str]:
     if not age_value:
         return None
@@ -59,6 +68,9 @@ def map_gender(gender_value: Optional[str]) -> Optional[str]:
     return "0"
 
 
+# ==============================
+# Serializer 정의
+# ==============================
 class NicknameValidateSerializer(serializers.Serializer):
     nickname = serializers.CharField(
         max_length=20,
@@ -86,7 +98,7 @@ class SignupSerializer(serializers.ModelSerializer):
     nickname = serializers.CharField(required=False, allow_blank=True, max_length=20)
 
     class Meta:
-        model = User
+        model = UserModel
         fields = [
             "email",
             "password",
@@ -100,6 +112,9 @@ class SignupSerializer(serializers.ModelSerializer):
             "email": {"required": True},
         }
 
+    # --------------------------
+    # validate
+    # --------------------------
     def validate(self, data: Dict):
         pw = data.get("password")
 
@@ -124,18 +139,18 @@ class SignupSerializer(serializers.ModelSerializer):
             )
 
         nickname = data.get("nickname")
-        if (
-            nickname
-            and User.objects.filter(
-                nickname__iexact=nickname, deleted_at__isnull=True
-            ).exists()
-        ):
+        if nickname and UserModel.objects.filter(
+            nickname__iexact=nickname, deleted_at__isnull=True
+        ).exists():
             raise serializers.ValidationError(
                 {"nickname": "이미 사용중인 닉네임입니다."}
             )
 
         return data
 
+    # --------------------------
+    # create
+    # --------------------------
     def create(self, validated_data: Dict) -> "User":
         raw_pw = validated_data.pop("password")
         raw_age = validated_data.pop("age", None)
@@ -158,15 +173,15 @@ class SignupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"email": "이메일이 누락되었습니다."})
 
         try:
-            user = User.objects.create_user(email, raw_pw, **extra)
+            user = UserModel.objects.create_user(email, raw_pw, **extra)
             return user
         except TypeError:
             try:
-                user = User.objects.create_user(email=email, password=raw_pw, **extra)
+                user = UserModel.objects.create_user(email=email, password=raw_pw, **extra)
                 return user
             except Exception:
                 validated_password = make_password(raw_pw)
-                user = User(
+                user = UserModel(
                     email=email,
                     nickname=extra.get("nickname"),
                     name=extra.get("name"),
