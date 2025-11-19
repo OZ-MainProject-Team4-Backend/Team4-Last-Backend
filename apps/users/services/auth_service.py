@@ -149,7 +149,7 @@ def signup_user_service(
             status.HTTP_400_BAD_REQUEST,
         )
 
-    # ⭐ 탈퇴한 계정 먼저 완전 삭제
+    # ⭐ 탈퇴한 계정 먼저 완전 삭제 (순서 변경)
     deleted_user = User.objects.filter(
         email__iexact=email, deleted_at__isnull=False
     ).first()
@@ -157,6 +157,7 @@ def signup_user_service(
         deleted_user.delete()  # 🔧 완전 삭제
         logger.info(f"Deleted account purged: {email}")
 
+    # ✅ 그 후 활성 계정 체크
     if User.objects.filter(email__iexact=email, deleted_at__isnull=True).exists():
         return (
             False,
