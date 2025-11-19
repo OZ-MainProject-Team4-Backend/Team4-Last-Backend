@@ -7,6 +7,11 @@ from rest_framework import serializers
 
 from .models import SocialAccount, Token
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from apps.users.models import User
+
 User = get_user_model()
 
 
