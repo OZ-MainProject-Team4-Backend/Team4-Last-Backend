@@ -238,6 +238,25 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ["id", "email", "nickname", "gender", "age_group"]
         read_only_fields = ["id", "email"]
 
+    def update(self, instance, validated_data):
+        # gender 매핑
+        gender = validated_data.pop("gender", None)
+        if gender:
+            gender_map = {"woman": "W", "man": "M", "여성": "W", "남성": "M"}
+            instance.gender = gender_map.get(gender.lower(), "0")
+
+        # age_group 매핑
+        age_group = validated_data.pop("age_group", None)
+        if age_group:
+            instance.age_group = map_age_to_group(age_group)
+
+        # 나머지 필드
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
+
 
 class FavoriteRegionsSerializer(serializers.Serializer):
     """즐겨찾는 지역 수정 시리얼라이저"""
