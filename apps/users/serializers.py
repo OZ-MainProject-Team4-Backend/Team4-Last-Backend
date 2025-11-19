@@ -221,6 +221,7 @@ class LoginResponseSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     age_group = serializers.ChoiceField(
         choices=[
+            ("", ""),
             ("10", "ten"),
             ("20", "twenty"),
             ("30", "thirty"),
@@ -233,7 +234,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         allow_blank=True,
     )
     gender = serializers.ChoiceField(
-        choices=[("W", "여성"), ("M", "남성"), ("0", "기타")],
+        choices=[("", ""), ("W", "여성"), ("M", "남성"), ("0", "기타")],
         required=False,
         allow_null=True,
         allow_blank=True,
