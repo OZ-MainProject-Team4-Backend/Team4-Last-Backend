@@ -10,6 +10,11 @@ class ChatSendSerializer(serializers.Serializer):
     profile = serializers.JSONField(required=False)
     session_id = serializers.IntegerField(required=False, allow_null=True)
 
+    lat = serializers.FloatField(required=False)
+    lon = serializers.FloatField(required=False)
+    city = serializers.CharField(required=False, allow_blank=True)
+    district = serializers.CharField(required=False, allow_blank=True)
+
 
 class AiChatLogReadSerializer(serializers.ModelSerializer):  # ← ModelSerializer 로!
     class Meta:
