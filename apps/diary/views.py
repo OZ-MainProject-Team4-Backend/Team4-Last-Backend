@@ -115,7 +115,9 @@ class DiaryViewSet(viewsets.ModelViewSet):
         try:
             if lat is not None and lon is not None:
                 if date == today:
-                    current_weather = ow.get_current(lat=lat, lon=lon)   # 다이어리 작성시, 현재 날씨 불러오기
+                    current_weather = ow.get_current(
+                        lat=lat, lon=lon
+                    )  # 다이어리 작성시, 현재 날씨 불러오기
                 else:
                     current_weather = None
         except ow.ProviderTimeout:
