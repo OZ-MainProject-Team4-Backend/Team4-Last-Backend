@@ -1,5 +1,5 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -12,9 +12,11 @@ from .services.recommend_service import create_by_coords, create_by_location
 
 
 class OutfitRecommendByCoordsView(APIView):
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+
     @extend_schema(
         summary="좌표 기반 복장 추천",
-        request=CoordsRecommendSerializer,
+        request={"application/json": CoordsRecommendSerializer},
         responses={200: OutfitRecommendSerializer},
         tags=["Recommend"],
     )
@@ -30,9 +32,11 @@ class OutfitRecommendByCoordsView(APIView):
 
 
 class OutfitRecommendByLocationView(APIView):
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+
     @extend_schema(
         summary="지역 기반 복장 추천",
-        request=LocationRecommendSerializer,
+        request={"application/json": LocationRecommendSerializer},
         responses={200: OutfitRecommendSerializer},
         tags=["Recommend"],
     )
