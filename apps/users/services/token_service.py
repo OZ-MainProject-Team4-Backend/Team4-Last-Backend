@@ -20,8 +20,10 @@ def create_jwt_pair_for_user(user, is_auto_login: bool = False):
     access_expires_at = timezone.now() + timedelta(minutes=15)
 
     if is_auto_login:
+        access_expires_at = timezone.now() + timedelta(days=7)
         refresh_expires_at = timezone.now() + timedelta(days=7)
     else:
+        access_expires_at = timezone.now() + timedelta(minutes=15)
         refresh_expires_at = timezone.now() + timedelta(days=1)
 
     token, created = Token.objects.get_or_create(user=user)
