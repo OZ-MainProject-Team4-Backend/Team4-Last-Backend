@@ -54,15 +54,15 @@ def send_email_verification_service(
     email: str,
 ) -> Tuple[bool, Optional[str], Optional[str], Optional[int]]:
     """인증 이메일 발송"""
-    if User.objects.filter(
+    # ✅ 추가: 활성 계정이 있으면 자동 탈퇴 처리
+    existing_active = User.objects.filter(
         email__iexact=email, email_verified=True, deleted_at__isnull=True
-    ).exists():
-        return (
-            False,
-            "email_already_verified",
-            "이미 인증이 된 이메일",
-            status.HTTP_400_BAD_REQUEST,
-        )
+    ).first()
+    if existing_active:
+        existing_active.deleted_at = timezone.now()
+        existing_active.is_active = False
+        existing_active.save(update_fields=["deleted_at", "is_active"])
+        logger.info(f"Active user auto-deleted: {email}")
 
     if cache.get(key_resend(email)):
         return (
