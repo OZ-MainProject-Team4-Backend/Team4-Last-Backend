@@ -38,13 +38,19 @@ def key_nickname_valid(nickname: str):
 
 def get_user_data(user):
     """사용자 데이터 포맷팅"""
+    gender_display = {
+        "W": "Woman",
+        "M": "Man",
+        "0": "기타",
+    }
+
     return {
         "id": user.id,
         "email": user.email,
         "nickname": user.nickname,
         "name": user.name or "",
-        "gender": getattr(user, "gender", None),
-        "age_group": getattr(user, "age_group", None),
+        "gender": gender_display.get(user.gender, user.gender),
+        "age_group": user.age_group,
         "is_verified": user.email_verified,
         "favorite_regions": getattr(user, "favorite_regions", None) or [],
         "created_at": (
