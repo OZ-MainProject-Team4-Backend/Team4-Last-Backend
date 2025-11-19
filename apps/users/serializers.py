@@ -133,7 +133,7 @@ class SignupSerializer(serializers.ModelSerializer):
 
         return data
 
-    def create(self, validated_data: Dict) -> User:
+    def create(self, validated_data: Dict) -> "User":
         raw_pw = validated_data.pop("password")
         raw_age = validated_data.pop("age", None)
         raw_gender = validated_data.pop("gender", None)
