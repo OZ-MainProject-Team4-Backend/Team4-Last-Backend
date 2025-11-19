@@ -107,20 +107,12 @@ class DiaryViewSet(viewsets.ModelViewSet):
         # 2. 날씨 처리
         lat = serializer.validated_data.pop("lat", None)
         lon = serializer.validated_data.pop("lon", None)
-        date = serializer.validated_data.get("date")
-        today = datetime.now().date()
         current_weather = None  # 초기값 설정
 
         #  1. 날씨 데이터 조회
         try:
             if lat is not None and lon is not None:
-                if date == today:
-                    current_weather = ow.get_current(lat=lat, lon=lon)
-                elif today - timedelta(days=5) <= date < today:
-                    dt = datetime.combine(date, datetime.min.time())
-                    current_weather = ow.get_historical(lat=lat, lon=lon, date=dt)
-                else:
-                    current_weather = None
+                 current_weather = ow.get_current(lat=lat, lon=lon)   # 날짜와 상관없이, 항상 오늘 날씨 호출
             else:
                 current_weather = None
         except ow.ProviderTimeout:
