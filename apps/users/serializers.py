@@ -242,8 +242,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
         # gender 매핑
         gender = validated_data.pop("gender", None)
         if gender:
-            gender_map = {"woman": "W", "man": "M", "여성": "W", "남성": "M"}
-            instance.gender = gender_map.get(gender.lower(), "0")
+            gender_map = {
+                "woman": "W",
+                "man": "M",
+                "여성": "W",
+                "남성": "M",
+                "w": "W",
+                "m": "M",
+                "W": "W",
+                "M": "M",
+            }
+            instance.gender = gender_map.get(gender, "0")  # .lower() 제거
 
         # age_group 매핑
         age_group = validated_data.pop("age_group", None)
