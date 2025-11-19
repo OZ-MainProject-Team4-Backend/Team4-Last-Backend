@@ -35,7 +35,6 @@ ALLOWED_HOSTS = [
 ]
 
 
-
 # ============ 데이터베이스 설정 (RDS PostgreSQL) ============
 DATABASES = {
     "default": {
