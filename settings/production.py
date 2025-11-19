@@ -95,7 +95,7 @@ STATICFILES_STORAGE = "storages.backends.s3boto3.S3StaticStorage"
 MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
 DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
-AWS_DEFAULT_ACL = "public-read"
+AWS_DEFAULT_ACL = None
 
 # ============ 이메일 설정 ============
 EMAIL_BACKEND = env(
@@ -157,7 +157,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 # ============ JWT 설정 ============
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,

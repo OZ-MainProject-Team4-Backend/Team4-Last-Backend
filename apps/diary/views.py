@@ -1,5 +1,10 @@
+import os
+import re
+import uuid
 from datetime import datetime, timedelta
 
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
@@ -18,6 +23,43 @@ from .serializers import (
     DiaryListSerializer,
     DiaryUpdateSerializer,
 )
+
+# 파일 업로드 방어 함수
+# ==========================
+ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif"]
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+def safe_upload(file_obj, user_id):
+    if not file_obj or not getattr(file_obj, "name", ""):
+        raise ValidationError("업로드된 파일이 없습니다.")
+
+    ext = os.path.splitext(file_obj.name)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise ValidationError(f"허용되지 않은 파일 확장자: {ext}")
+    if file_obj.size > MAX_FILE_SIZE:
+        raise ValidationError(f"파일 크기 제한 초과: {file_obj.size} bytes")
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    key = f"diary/{user_id}/{filename}"
+    key = re.sub(r"[^A-Za-z0-9_\-./]", "_", key)
+    key = re.sub(r"/+", "/", key)
+
+    if getattr(file_obj, "content_type", None):
+        file_obj = ContentFile(file_obj.read(), name=filename)
+
+    try:
+        bucket = default_storage.bucket
+        extra_args = {}
+        if getattr(file_obj, "content_type", None):
+            extra_args["ContentType"] = file_obj.content_type
+
+        bucket.Object(key).put(Body=file_obj, **extra_args)
+
+    except Exception as e:
+        raise ValidationError(f"S3 업로드 실패: {str(e)}")
+
+    return key
 
 
 class DiaryViewSet(viewsets.ModelViewSet):
@@ -50,33 +92,34 @@ class DiaryViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def handle_file_upload(self, file_obj):
+        saved_path = default_storage.save(f"diary/{file_obj.name}", file_obj)
+        return saved_path
+
     @transaction.atomic  # 날씨 저장 중 오류 발생 시 일기까지 저장되지 않도록 롤백
     def perform_create(self, serializer):
+
+        # 1. 파일 업로드 처리
+        file_obj = serializer.validated_data.pop("image", None)
+        if file_obj:
+            serializer.validated_data["image"] = self.handle_file_upload(file_obj)
+
+        # 2. 날씨 처리
         lat = serializer.validated_data.pop("lat", None)
         lon = serializer.validated_data.pop("lon", None)
         date = serializer.validated_data.get("date")
-
         today = datetime.now().date()
-        current_weather = None
+        current_weather = None  # 초기값 설정
 
         #  1. 날씨 데이터 조회
         try:
-            # 오늘 → 현재 날씨 API(openweather.py - get_current() 호출)
             if lat is not None and lon is not None:
                 if date == today:
-                    current_weather = ow.get_current(lat=lat, lon=lon)
-
-                # 5일 이내 과거 → Timemachine API(openweather.py - get_historical() 호출)
-                elif today - timedelta(days=5) <= date < today:
-                    dt = datetime.combine(date, datetime.min.time())
-                    current_weather = ow.get_historical(lat=lat, lon=lon, date=dt)
-
-                # 6일 이상 과거 → 날씨 없음
+                    current_weather = ow.get_current(
+                        lat=lat, lon=lon
+                    )  # 다이어리 작성시, 현재 날씨 불러오기
                 else:
                     current_weather = None
-            else:
-                current_weather = None
-
         except ow.ProviderTimeout:
             raise ValidationError({"detail": "weather_provider_timeout"})
         except ow.ProviderError as e:
@@ -85,16 +128,21 @@ class DiaryViewSet(viewsets.ModelViewSet):
             current_weather = None  # 날씨 조회 실패시, 일기는 저장
 
         #  2. WeatherLocation 생성 or 갱신
-        raw = (
-            (current_weather or {}).get("raw", {})
+        city = (
+            current_weather.get("raw", {}).get("name")
             if isinstance(current_weather, dict)
-            else {}
-        )
-        city = raw.get("name", "") or ""
+            else ""
+        ) or ""
+        district = ""
+
         location, _ = WeatherLocation.objects.get_or_create(
-            lat=lat,
-            lon=lon,
-            defaults={"city": city, "district": "", "dp_name": city or f"{lat},{lon}"},
+            city=city,
+            district=district,
+            defaults={
+                "lat": lat,
+                "lon": lon,
+                "dp_name": city or f"{lat},{lon}",
+            },
         )
 
         #  3. WeatherData 저장 (repository 사용)
@@ -107,7 +155,24 @@ class DiaryViewSet(viewsets.ModelViewSet):
         #  4. Diary 저장 (날씨 자동 연결)
         serializer.save(user=self.request.user, weather_data=weather_data)
 
+    @transaction.atomic
+    def perform_update(self, serializer):
+        file_obj = serializer.validated_data.pop("image", None)
+        if file_obj:
+            if serializer.instance.image:
+                try:
+                    default_storage.delete(serializer.instance.image.name)
+                except Exception:
+                    pass
+            serializer.validated_data["image"] = self.handle_file_upload(file_obj)
+        serializer.save()
+
     def perform_destroy(self, instance):
+        if instance.image:
+            try:
+                default_storage.delete(instance.image.name)  # name으로 삭제
+            except Exception:
+                pass
         instance.delete()
 
     #  일기생성
@@ -132,3 +197,12 @@ class DiaryViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# 민수
+from storages.backends.s3boto3 import S3Boto3Storage
+
+
+class CustomS3Storage(S3Boto3Storage):
+    def save(self, name, content, max_length=None):
+        return super().save(name, content, extra_args={"ACL": "public-read"})
