@@ -47,10 +47,6 @@ class CustomJWTAuthentication(JWTAuthentication):
             cache.set(cache_key, {"revoked": True}, timeout=self.CACHE_TIMEOUT)
             raise AuthenticationFailed("유효하지 않은 토큰입니다 (토큰 불일치).")
 
-        if db_token.access_expires_at < timezone.now():
-            cache.set(cache_key, {"revoked": True}, timeout=self.CACHE_TIMEOUT)
-            raise AuthenticationFailed("액세스 토큰이 만료되었습니다.")
-
         cache.set(cache_key, {"revoked": False}, timeout=self.CACHE_TIMEOUT)
         return user, validated_token
 
