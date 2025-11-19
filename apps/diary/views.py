@@ -112,7 +112,7 @@ class DiaryViewSet(viewsets.ModelViewSet):
         #  1. 날씨 데이터 조회
         try:
             if lat is not None and lon is not None:
-                 current_weather = ow.get_current(lat=lat, lon=lon)   # 날짜와 상관없이, 항상 오늘 날짜 호출
+                 current_weather = ow.get_current(lat=lat, lon=lon)   # 날짜와 상관없이, 항상 오늘 날씨 호출
             else:
                 current_weather = None
         except ow.ProviderTimeout:
