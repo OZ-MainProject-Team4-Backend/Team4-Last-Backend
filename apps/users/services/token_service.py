@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
-from pytz import UTC
 
 from ..models import Token
 
@@ -23,15 +22,11 @@ def create_jwt_pair_for_user(user, is_auto_login: bool = False):
 
     # JWT의 exp를 datetime으로 변환
     access_exp_timestamp = access_token_obj.get("exp")
-    access_expires_at = datetime.utcfromtimestamp(access_exp_timestamp).replace(
-        tzinfo=timezone.utc
-    )
+    access_expires_at = datetime.utcfromtimestamp(access_exp_timestamp)  # ✅ tzinfo 제거
 
     if is_auto_login:
         refresh_exp_timestamp = token_obj.get("exp")
-        refresh_expires_at = datetime.utcfromtimestamp(refresh_exp_timestamp).replace(
-            tzinfo=timezone.utc
-        )
+        refresh_expires_at = datetime.utcfromtimestamp(refresh_exp_timestamp)  # ✅ tzinfo 제거
     else:
         refresh_expires_at = timezone.now() + timedelta(days=1)
 
