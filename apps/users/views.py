@@ -380,6 +380,12 @@ class SocialLoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = SocialLoginSerializer
 
+    def options(self, request, *args, **kwargs):
+        """
+        Preflight 요청 처리
+        """
+        return Response(status=status.HTTP_200_OK)
+
     def post(self, request, provider):
         if provider not in settings.SOCIAL_PROVIDERS:
             return error_response(

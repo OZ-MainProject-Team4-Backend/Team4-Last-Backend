@@ -125,6 +125,10 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.team4.p-e.kr",
 ]
 
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^null$",
+]
+
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
@@ -146,6 +150,13 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+]
+
+CORS_PREFLIGHT_MAX_AGE = 86400
+
+CORS_EXPOSE_HEADERS = [
+    'Content-Type',
+    'Authorization',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
