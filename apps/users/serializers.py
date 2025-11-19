@@ -244,7 +244,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        instance.save(update_fields=list(validated_data.keys()) + ["gender", "age_group"])
+        instance.save(
+            update_fields=list(validated_data.keys()) + ["gender", "age_group"]
+        )
         return instance
 
 
