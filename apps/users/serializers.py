@@ -112,9 +112,6 @@ class SignupSerializer(serializers.ModelSerializer):
             "email": {"required": True},
         }
 
-    # --------------------------
-    # validate
-    # --------------------------
     def validate(self, data: Dict):
         pw = data.get("password")
 
@@ -151,9 +148,6 @@ class SignupSerializer(serializers.ModelSerializer):
 
         return data
 
-    # --------------------------
-    # create
-    # --------------------------
     def create(self, validated_data: Dict) -> "User":
         raw_pw = validated_data.pop("password")
         raw_age = validated_data.pop("age", None)
@@ -175,27 +169,8 @@ class SignupSerializer(serializers.ModelSerializer):
         if not isinstance(email, str):
             raise serializers.ValidationError({"email": "이메일이 누락되었습니다."})
 
-        try:
-            user = UserModel.objects.create_user(email, raw_pw, **extra)
-            return user
-        except TypeError:
-            try:
-                user = UserModel.objects.create_user(
-                    email=email, password=raw_pw, **extra
-                )
-                return user
-            except Exception:
-                validated_password = make_password(raw_pw)
-                user = UserModel(
-                    email=email,
-                    nickname=extra.get("nickname"),
-                    name=extra.get("name"),
-                    age_group=extra.get("age_group"),
-                    gender=extra.get("gender"),
-                )
-                user.password = validated_password
-                user.save()
-                return user
+        user = UserModel.objects.create_user(email=email, password=raw_pw, **extra)
+        return user
 
 
 class LoginSerializer(serializers.Serializer):
