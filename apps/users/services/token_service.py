@@ -11,19 +11,33 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+from datetime import timedelta
+
+from django.utils import timezone
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
 def create_jwt_pair_for_user(user, is_auto_login: bool = False):
     """JWT 토큰 쌍(Access, Refresh) 생성"""
     refresh = RefreshToken.for_user(user)
     access_token = str(refresh.access_token)
     refresh_token = str(refresh)
 
-    access_expires_at = timezone.now() + timedelta(minutes=15)
+    token_obj = RefreshToken.for_user(user)
+    access_token_obj = token_obj.access_token
+
+    # JWT의 exp를 datetime으로 변환
+    from datetime import datetime
+
+    access_exp_timestamp = access_token_obj.get("exp")
+    access_expires_at = datetime.fromtimestamp(access_exp_timestamp, tz=timezone.utc)
 
     if is_auto_login:
-        access_expires_at = timezone.now() + timedelta(days=7)
-        refresh_expires_at = timezone.now() + timedelta(days=7)
+        refresh_exp_timestamp = token_obj.get("exp")
+        refresh_expires_at = datetime.fromtimestamp(
+            refresh_exp_timestamp, tz=timezone.utc
+        )
     else:
-        access_expires_at = timezone.now() + timedelta(minutes=15)
         refresh_expires_at = timezone.now() + timedelta(days=1)
 
     token, created = Token.objects.get_or_create(user=user)
