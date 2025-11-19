@@ -127,7 +127,8 @@ class SignupSerializer(serializers.ModelSerializer):
         if (
             email
             and User.objects.filter(
-                email__iexact=email, deleted_at__isnull=True
+                email__iexact=email,
+                deleted_at__isnull=True,
             ).exists()
         ):
             raise serializers.ValidationError({"email": "이미 사용중인 이메일입니다."})
