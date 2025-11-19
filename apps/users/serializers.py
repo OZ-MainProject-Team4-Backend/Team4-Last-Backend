@@ -136,10 +136,15 @@ class SignupSerializer(serializers.ModelSerializer):
             )
 
         nickname = data.get("nickname")
-        if nickname and UserModel.objects.filter(
-            nickname__iexact=nickname, deleted_at__isnull=True
-        ).exists():
-            raise serializers.ValidationError({"nickname": "이미 사용중인 닉네임입니다."})
+        if (
+            nickname
+            and UserModel.objects.filter(
+                nickname__iexact=nickname, deleted_at__isnull=True
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                {"nickname": "이미 사용중인 닉네임입니다."}
+            )
 
         return data
 
@@ -235,6 +240,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             ("M", "남성"),
             ("0", "기타"),
         ],
+
         required=False,
         allow_null=True,
         allow_blank=True,
@@ -261,6 +267,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
 
         instance.save()
+
         return instance
 
 
