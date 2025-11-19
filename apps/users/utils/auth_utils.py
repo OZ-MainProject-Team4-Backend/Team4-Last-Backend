@@ -49,7 +49,7 @@ def get_user_data(user):
         "email": user.email,
         "nickname": user.nickname,
         "name": user.name or "",
-        "gender": gender_display.get(user.gender, user.gender),
+        "gender": user.gender,
         "age_group": user.age_group,
         "is_verified": user.email_verified,
         "favorite_regions": getattr(user, "favorite_regions", None) or [],
