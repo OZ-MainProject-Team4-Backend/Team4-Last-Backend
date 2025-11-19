@@ -149,6 +149,22 @@ def signup_user_service(
             status.HTTP_400_BAD_REQUEST,
         )
 
+    existing_user = User.objects.filter(
+        email__iexact=email, deleted_at__isnull=False
+    ).first()
+    if existing_user:
+        # 탈퇴한 계정 복구
+        existing_user.deleted_at = None
+        existing_user.is_active = True
+        existing_user.set_password(validated_data.get("password"))
+        existing_user.email_verified = True
+        existing_user.save(
+            update_fields=["deleted_at", "is_active", "password", "email_verified"]
+        )
+        cache.delete(key_preverified(email))
+        logger.info(f"User account restored: {email}")
+        return (True, get_user_data(existing_user), None, None, status.HTTP_201_CREATED)
+
     if User.objects.filter(email__iexact=email, deleted_at__isnull=True).exists():
         return (
             False,

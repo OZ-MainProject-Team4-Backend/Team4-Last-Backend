@@ -42,6 +42,7 @@ def get_user_data(user):
         "id": user.id,
         "email": user.email,
         "nickname": user.nickname,
+        "name": user.name or "",
         "gender": getattr(user, "gender", None),
         "age_group": getattr(user, "age_group", None),
         "is_verified": user.email_verified,
