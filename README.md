@@ -24,7 +24,7 @@
 ---
 
 ## 🖥️ 서비스 소개
-|   메인 화면 (로그인전)  |  메인 화면 (로그인후)  |      |
+|   메인 화면 (로그인전)  |  메인 화면 (로그인후)  |   메인화면 (로그아웃)   |
 |:-------------------:|:------------------:|:------:|
 | <img src="https://drive.google.com/uc?export=view&id=1m36WOSZEMN2mLHHuxxmm1Or_-np18-yI" width="300" alt="MainPage1"> |   <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/afterlogin(2).gif?raw=true" width="320" alt="MainPage2">  | |
 
@@ -32,7 +32,7 @@
 |:-----------------:|:-------------:|:-------------------:|
 | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/diarycreate.gif?raw=true" width="300" alt="diarycreate.gif"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/diarypatch.gif?raw=true" width="300" alt="diarypatch"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/diarydelete.gif?raw=true" width="300" alt="diarydelete"> |
 
-|   챗봇   |      즐겨찾는 지역 추가 및 순서 바꾸기      |      즐겨찾는 지역 별칭으로 저장하기 및 삭제    |
+|   챗봇   |      즐겨찾는 지역 추가 및 삭제     |      즐겨찾는 지역 별칭으로 저장하기 및 순서 바꾸기  |
 |:---------------:|:--------------------:|:-------------:|
 | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/chat.gif?raw=true" width="300" alt="chat"> | <img src="" alt="ShareComment"> | <img src="favorite_location_add, reorder" alt="alias, delete"> |
 
