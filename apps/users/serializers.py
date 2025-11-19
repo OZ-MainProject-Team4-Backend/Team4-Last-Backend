@@ -240,7 +240,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             ("M", "남성"),
             ("0", "기타"),
         ],
-
         required=False,
         allow_null=True,
         allow_blank=True,
