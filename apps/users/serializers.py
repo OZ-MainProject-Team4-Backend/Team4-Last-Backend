@@ -136,10 +136,15 @@ class SignupSerializer(serializers.ModelSerializer):
             )
 
         nickname = data.get("nickname")
-        if nickname and UserModel.objects.filter(
-            nickname__iexact=nickname, deleted_at__isnull=True
-        ).exists():
-            raise serializers.ValidationError({"nickname": "이미 사용중인 닉네임입니다."})
+        if (
+            nickname
+            and UserModel.objects.filter(
+                nickname__iexact=nickname, deleted_at__isnull=True
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                {"nickname": "이미 사용중인 닉네임입니다."}
+            )
 
         return data
 
