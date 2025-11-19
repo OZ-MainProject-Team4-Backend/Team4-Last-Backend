@@ -47,6 +47,11 @@ class AiChatViewSet(viewsets.ViewSet):
             ser.validated_data.get("detail") or ser.validated_data.get("message") or ""
         )
 
+        lat = ser.validated_data.get("lat")
+        lon = ser.validated_data.get("lon")
+        city = ser.validated_data.get("city")
+        district = ser.validated_data.get("district")
+
         SESSION_TTL_MINUTES = 10
 
         session_id = ser.validated_data.get("session_id")
@@ -54,7 +59,13 @@ class AiChatViewSet(viewsets.ViewSet):
 
         if not weather:
             try:
-                weather = get_weather_for_chat(user)
+                weather = get_weather_for_chat(
+                    user=user,
+                    lat=lat,
+                    lon=lon,
+                    city=city,
+                    district=district,
+                )
             except Exception:
                 logger.exception("get_weather_for_chat failed")
                 weather = None
