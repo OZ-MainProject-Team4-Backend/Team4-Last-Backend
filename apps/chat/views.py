@@ -30,7 +30,7 @@ class AiChatViewSet(viewsets.ViewSet):
         examples=[
             OpenApiExample(
                 '기본 요청 예시',
-                value={"message": "오늘 뭐 입지?"},
+                value={"message": "오늘 뭐 입지?", "lat": 37.5665, "lon": 126.9780},
                 request_only=True,
             )
         ],
