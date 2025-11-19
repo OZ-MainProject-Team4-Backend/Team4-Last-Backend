@@ -122,16 +122,6 @@ class SignupSerializer(serializers.ModelSerializer):
                 {"password": "비밀번호는 영어와 숫자만 사용할 수 있습니다."}
             )
 
-        # 이메일 중복 확인
-        email = data.get("email")
-        if (
-            email
-            and User.objects.filter(
-                email__iexact=email,
-            ).exists()
-        ):
-            raise serializers.ValidationError({"email": "이미 사용중인 이메일입니다."})
-
         # 닉네임 중복 확인
         nickname = data.get("nickname")
         if (
