@@ -215,18 +215,12 @@ class LoginResponseSerializer(serializers.Serializer):
     is_auto_login = serializers.BooleanField()
 
 
+# ==============================
+# 개선된 UserProfileSerializer
+# ==============================
 class UserProfileSerializer(serializers.ModelSerializer):
-    # ✅ age_group과 gender 필드 명시적으로 정의
-    age_group = serializers.CharField(
-        required=False,
-        allow_null=True,  # ✅ null 허용
-        allow_blank=True,  # ✅ 빈 문자열 허용
-    )
-    gender = serializers.CharField(
-        required=False,
-        allow_null=True,  # ✅ null 허용
-        allow_blank=True,  # ✅ 빈 문자열 허용
-    )
+    age_group = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    gender = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = UserModel
@@ -234,33 +228,25 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "email"]
 
     def update(self, instance, validated_data):
-        # ✅ gender 처리 수정
+        # gender 안전하게 매핑
         gender = validated_data.pop("gender", None)
-        if gender:  # None이나 빈 문자열이 아닐 때만 처리
-            gender_map = {
-                "woman": "W",
-                "man": "M",
-                "여성": "W",
-                "남성": "M",
-                "w": "W",
-                "m": "M",
-                "W": "W",
-                "M": "M",
-            }
-            instance.gender = gender_map.get(gender, "0")
+        if gender:  # None이나 빈 문자열 제외
+            instance.gender = map_gender(gender) or instance.gender
 
-        # ✅ age_group 처리 수정
+        # age_group 안전하게 매핑
         age_group = validated_data.pop("age_group", None)
-        if age_group:  # None이나 빈 문자열이 아닐 때만 처리
+        if age_group:  # None이나 빈 문자열 제외
             mapped_age = map_age_to_group(age_group)
             if mapped_age:
                 instance.age_group = mapped_age
 
-        # 나머지 필드 업데이트
+        # 나머지 필드 간결하게 적용
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        instance.save()
+        instance.save(
+            update_fields=list(validated_data.keys()) + ["gender", "age_group"]
+        )
         return instance
 
 
