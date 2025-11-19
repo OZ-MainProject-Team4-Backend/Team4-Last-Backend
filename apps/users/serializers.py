@@ -1,11 +1,13 @@
 from typing import Dict, Optional
 
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.hashers import make_password
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
 from .models import SocialAccount, Token, User
+
+User = get_user_model()
 
 
 def map_age_to_group(age_value: Optional[str]) -> Optional[str]:
@@ -48,9 +50,9 @@ def map_gender(gender_value: Optional[str]) -> Optional[str]:
         return None
     v = str(gender_value).strip().lower()
     if v in ("female", "woman", "여성", "w", "f"):
-        return "Woman"
+        return "W"
     if v in ("male", "man", "남성", "m"):
-        return "Man"
+        return "M"
     return "0"
 
 
@@ -98,31 +100,26 @@ class SignupSerializer(serializers.ModelSerializer):
     def validate(self, data: Dict):
         pw = data.get("password")
 
-        # 길이 확인
         if not pw or len(pw) < 6 or len(pw) > 20:
             raise serializers.ValidationError(
                 {"password": "비밀번호는 6자 이상 20자 이하로 입력해야 합니다."}
             )
 
-        # 공백 확인
         if " " in pw:
             raise serializers.ValidationError(
                 {"password": "비밀번호에 공백을 포함할 수 없습니다."}
             )
 
-        # 소문자, 숫자 포함 확인
         if not any(c.islower() for c in pw) or not any(c.isdigit() for c in pw):
             raise serializers.ValidationError(
                 {"password": "비밀번호는 영어 소문자, 숫자를 조합해야 합니다."}
             )
 
-        # 영어+숫자만 허용 확인 (특수문자 제외)
         if not all(c.isalnum() for c in pw):
             raise serializers.ValidationError(
                 {"password": "비밀번호는 영어와 숫자만 사용할 수 있습니다."}
             )
 
-        # 닉네임 중복 확인
         nickname = data.get("nickname")
         if (
             nickname
@@ -137,16 +134,13 @@ class SignupSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data: Dict) -> User:
-        # password와 age, gender 추출 및 제거
         raw_pw = validated_data.pop("password")
         raw_age = validated_data.pop("age", None)
         raw_gender = validated_data.pop("gender", None)
 
-        # age와 gender 매핑
         age_group = map_age_to_group(raw_age)
         gender_choice = map_gender(raw_gender)
 
-        # 사용자 생성 데이터 구성
         extra = {
             "nickname": validated_data.get("nickname"),
             "name": validated_data.get("name"),
@@ -189,27 +183,28 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         email = data.get("email")
         password = data.get("password")
-        user = authenticate(email=email, password=password)
 
-        # 1. 인증 실패
-        if user is None:
+        try:
+            user = User.objects.get(email__iexact=email, deleted_at__isnull=True)
+        except User.DoesNotExist:
             raise serializers.ValidationError(
                 "로그인 실패: 이메일 또는 비밀번호가 올바르지 않습니다."
             )
 
-        # 2. 계정 비활성화 확인
+        if not user.check_password(password):
+            raise serializers.ValidationError(
+                "로그인 실패: 이메일 또는 비밀번호가 올바르지 않습니다."
+            )
+
         if not getattr(user, "is_active", True):
             raise serializers.ValidationError("비활성화된 계정입니다.")
 
-        # 3. 이메일 검증 여부 확인
         if not getattr(user, "email_verified", False):
             raise serializers.ValidationError("이메일 인증이 필요합니다.")
 
-        # 4. 탈퇴 계정 확인
         if getattr(user, "deleted_at", None):
             raise serializers.ValidationError("탈퇴한 계정입니다.")
 
-        # 검증 통과
         data["user"] = user
         data["isAutoLogin"] = bool(data.get("isAutoLogin", False))
         return data
@@ -229,7 +224,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "email"]
 
     def update(self, instance, validated_data):
-        # gender 매핑
         gender = validated_data.pop("gender", None)
         if gender:
             gender_map = {
@@ -242,14 +236,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 "W": "W",
                 "M": "M",
             }
-            instance.gender = gender_map.get(gender, "0")  # .lower() 제거
+            instance.gender = gender_map.get(gender, "0")
 
-        # age_group 매핑
         age_group = validated_data.pop("age_group", None)
         if age_group:
             instance.age_group = map_age_to_group(age_group)
 
-        # 나머지 필드
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
@@ -273,11 +265,9 @@ class FavoriteRegionsSerializer(serializers.Serializer):
                 "지역은 최대 3개까지만 등록할 수 있습니다."
             )
 
-        # 빈 문자열 체크
         if any(not region.strip() for region in value):
             raise serializers.ValidationError("유효하지 않은 지역이 있습니다.")
 
-        # 중복 체크
         if len(value) != len(set(value)):
             raise serializers.ValidationError("중복된 지역이 있습니다.")
 
@@ -309,25 +299,21 @@ class PasswordChangeSerializer(serializers.Serializer):
 
         new_pw = attrs.get("new_password")
 
-        # 길이 확인
         if not new_pw or len(new_pw) < 6 or len(new_pw) > 20:
             raise serializers.ValidationError(
                 {"new_password": "비밀번호는 6자 이상 20자 이하로 입력해야 합니다."}
             )
 
-        # 공백 확인
         if " " in new_pw:
             raise serializers.ValidationError(
                 {"new_password": "비밀번호에 공백을 포함할 수 없습니다."}
             )
 
-        # 소문자, 숫자 포함 확인 (대문자 제거!)
         if not any(c.islower() for c in new_pw) or not any(c.isdigit() for c in new_pw):
             raise serializers.ValidationError(
                 {"new_password": "비밀번호는 영어 소문자와 숫자를 조합해야 합니다."}
             )
 
-        # 영어+숫자만 허용 확인 (특수문자 제외)
         if not all(c.isalnum() for c in new_pw):
             raise serializers.ValidationError(
                 {"new_password": "비밀번호는 영어와 숫자만 사용할 수 있습니다."}
@@ -411,7 +397,7 @@ class TokenSerializer(serializers.ModelSerializer):
 class AccessTokenResponseSerializer(serializers.Serializer):
     access = serializers.CharField()
     refresh = serializers.CharField(required=False)
-    expires_in = serializers.IntegerField(required=False)  # 초 단위
+    expires_in = serializers.IntegerField(required=False)
 
 
 class TokenRevokeSerializer(serializers.Serializer):
