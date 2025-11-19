@@ -93,7 +93,7 @@ class EmailVerifySerializer(serializers.Serializer):
 
 
 class SignupSerializer(serializers.ModelSerializer):
-    age = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    age_group = serializers.CharField(write_only=True, required=False, allow_blank=True)
     gender = serializers.CharField(write_only=True, required=False, allow_blank=True)
     nickname = serializers.CharField(required=False, allow_blank=True, max_length=20)
 
@@ -104,7 +104,7 @@ class SignupSerializer(serializers.ModelSerializer):
             "password",
             "nickname",
             "name",
-            "age",
+            "age_group",
             "gender",
         ]
         extra_kwargs = {
