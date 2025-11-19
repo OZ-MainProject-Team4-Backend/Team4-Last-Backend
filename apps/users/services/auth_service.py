@@ -124,48 +124,32 @@ def verify_email_code_service(
 
 
 # ============ Signup Service ============
-def signup_user_service(
-    validated_data: dict,
-) -> Tuple[bool, Optional[dict], Optional[str], Optional[str], Optional[int]]:
+from django.db import transaction
+
+
+@transaction.atomic
+def signup_user_service(validated_data: dict):
     """사용자 회원가입"""
     email = validated_data.get("email")
     if not email:
-        return (
-            False,
-            None,
-            "email_invalid",
-            "이메일이 필요합니다",
-            status.HTTP_400_BAD_REQUEST,
-        )
+        return False, None, "email_invalid", "이메일이 필요합니다", 400
 
     email = email.strip().lower()
 
     if not cache.get(key_preverified(email)):
-        return (
-            False,
-            None,
-            "email_not_verified",
-            "이메일 미검증",
-            status.HTTP_400_BAD_REQUEST,
-        )
+        return False, None, "email_not_verified", "이메일 미검증", 400
 
-    # ⭐ 탈퇴한 계정 먼저 완전 삭제 (순서 변경)
+    # 탈퇴 계정 완전 삭제
     deleted_user = User.objects.filter(
         email__iexact=email, deleted_at__isnull=False
     ).first()
     if deleted_user:
-        deleted_user.delete()  # 🔧 완전 삭제
-        logger.info(f"Deleted account purged: {email}")
+        deleted_user.delete()
+        # commit 필요 시: transaction.on_commit(lambda: None)
 
-    # ✅ 그 후 활성 계정 체크
+    # 활성 계정 중복 체크
     if User.objects.filter(email__iexact=email, deleted_at__isnull=True).exists():
-        return (
-            False,
-            None,
-            "email_duplicate",
-            "이메일 중복",
-            status.HTTP_400_BAD_REQUEST,
-        )
+        return False, None, "email_duplicate", "이메일 중복", 400
 
     nickname = validated_data.get("nickname")
     if (
@@ -174,21 +158,15 @@ def signup_user_service(
             nickname__iexact=nickname, deleted_at__isnull=True
         ).exists()
     ):
-        return (
-            False,
-            None,
-            "nickname_duplicate",
-            "닉네임 중복",
-            status.HTTP_400_BAD_REQUEST,
-        )
+        return False, None, "nickname_duplicate", "닉네임 중복", 400
 
     user_data = {
-        'email': email,  # 🔧 정제된 email 사용
-        'password': validated_data.get('password'),
-        'nickname': validated_data.get('nickname'),
-        'name': validated_data.get('name'),
-        'age_group': validated_data.get('age_group'),
-        'gender': validated_data.get('gender'),
+        "email": email,
+        "password": validated_data.get("password"),
+        "nickname": nickname,
+        "name": validated_data.get("name"),
+        "age_group": validated_data.get("age_group"),
+        "gender": validated_data.get("gender"),
     }
     user_data = {k: v for k, v in user_data.items() if v is not None}
 
@@ -197,7 +175,7 @@ def signup_user_service(
     user.save(update_fields=["email_verified"])
     cache.delete(key_preverified(email))
 
-    return (True, get_user_data(user), None, None, status.HTTP_201_CREATED)
+    return True, get_user_data(user), None, None, 201
 
 
 # ============ Login Service ============
