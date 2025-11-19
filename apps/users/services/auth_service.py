@@ -126,6 +126,7 @@ def verify_email_code_service(
 # ============ Signup Service ============
 from django.db import transaction
 
+
 @transaction.atomic
 def signup_user_service(validated_data: dict):
     """사용자 회원가입"""
@@ -139,7 +140,9 @@ def signup_user_service(validated_data: dict):
         return False, None, "email_not_verified", "이메일 미검증", 400
 
     # 탈퇴 계정 완전 삭제
-    deleted_user = User.objects.filter(email__iexact=email, deleted_at__isnull=False).first()
+    deleted_user = User.objects.filter(
+        email__iexact=email, deleted_at__isnull=False
+    ).first()
     if deleted_user:
         deleted_user.delete()
         # commit 필요 시: transaction.on_commit(lambda: None)
@@ -149,7 +152,12 @@ def signup_user_service(validated_data: dict):
         return False, None, "email_duplicate", "이메일 중복", 400
 
     nickname = validated_data.get("nickname")
-    if nickname and User.objects.filter(nickname__iexact=nickname, deleted_at__isnull=True).exists():
+    if (
+        nickname
+        and User.objects.filter(
+            nickname__iexact=nickname, deleted_at__isnull=True
+        ).exists()
+    ):
         return False, None, "nickname_duplicate", "닉네임 중복", 400
 
     user_data = {
@@ -168,7 +176,6 @@ def signup_user_service(validated_data: dict):
     cache.delete(key_preverified(email))
 
     return True, get_user_data(user), None, None, 201
-
 
 
 # ============ Login Service ============
