@@ -138,19 +138,35 @@ def signup_user_service(validated_data: dict):
     if not cache.get(key_preverified(email)):
         return False, None, "email_not_verified", "이메일 미검증", 400
 
-    # 탈퇴 계정 완전 삭제
-    deleted_user = User.objects.filter(email__iexact=email, deleted_at__isnull=False).first()
+    deleted_user = User.objects.filter(
+        email__iexact=email, deleted_at__isnull=False
+    ).first()
     if deleted_user:
         deleted_user.delete()
-        # commit 필요 시: transaction.on_commit(lambda: None)
 
-    # 활성 계정 중복 체크
     if User.objects.filter(email__iexact=email, deleted_at__isnull=True).exists():
-        return False, None, "email_duplicate", "이메일 중복", 400
+        return (
+            False,
+            None,
+            "email_duplicate",
+            "이메일 중복",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     nickname = validated_data.get("nickname")
-    if nickname and User.objects.filter(nickname__iexact=nickname, deleted_at__isnull=True).exists():
-        return False, None, "nickname_duplicate", "닉네임 중복", 400
+    if (
+        nickname
+        and User.objects.filter(
+            nickname__iexact=nickname, deleted_at__isnull=True
+        ).exists()
+    ):
+        return (
+            False,
+            None,
+            "nickname_duplicate",
+            "닉네임 중복",
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     user_data = {
         "email": email,
