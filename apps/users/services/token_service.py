@@ -10,7 +10,6 @@ from ..models import Token
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-
 def create_jwt_pair_for_user(user, is_auto_login: bool = False):
     """JWT 토큰 쌍(Access, Refresh) 생성"""
     refresh = RefreshToken.for_user(user)
