@@ -284,10 +284,18 @@ class ProfileUpdateView(APIView):
                 return error_response(error_code, error_message, http_status)
             return success_response("이메일 변경 인증 코드 발송 완료", status_code=200)
 
+        # ✅ 수정: 저장 후 최신 데이터 로드 및 반환
         serializer.save()
         user.updated_at = timezone.now()
         user.save(update_fields=["updated_at"])
-        return success_response("프로필 수정 완료", status_code=200)
+
+        # ✅ DB에서 최신 데이터 다시 로드
+        user.refresh_from_db()
+
+        # ✅ 업데이트된 유저 데이터 반환
+        return success_response(
+            "프로필 수정 완료", data={"user": get_user_data(user)}, status_code=200
+        )
 
 
 class FavoriteRegionsUpdateView(APIView):
@@ -306,9 +314,13 @@ class FavoriteRegionsUpdateView(APIView):
         if not success:
             return error_response(error_code, error_message, http_status)
 
+        # ✅ DB에서 최신 데이터 다시 로드
+        user.refresh_from_db()
+
+        # ✅ 전체 유저 데이터와 지역 정보 함께 반환
         return success_response(
             "즐겨찾는 지역 수정 완료",
-            data={"favorite_regions": updated_regions},
+            data={"user": get_user_data(user), "favorite_regions": updated_regions},
             status_code=200,
         )
 
