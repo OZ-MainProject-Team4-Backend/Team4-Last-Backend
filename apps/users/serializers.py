@@ -12,8 +12,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from apps.users.models import User
 
-User = get_user_model()
-
 
 def map_age_to_group(age_value: Optional[str]) -> Optional[str]:
     if not age_value:
