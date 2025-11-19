@@ -14,6 +14,7 @@ class DiaryListSerializer(serializers.ModelSerializer):  # 목록조회
 class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
     weather = WeatherDataSerializer(source="weather_data", read_only=True)
     icon = serializers.CharField(source="weather_data.icon", read_only=True)
+    image = serializers.SerializerMethodField()  # 민수
 
     class Meta:
         model = Diary
@@ -31,6 +32,11 @@ class DiaryDetailSerializer(serializers.ModelSerializer):  # 상세조회
         ]
 
         read_only_fields = ["created_at", "updated_at"]
+
+    def get_image(self, obj):
+        if obj.image:
+            return obj.image.url  # S3 전체 URL 반환
+        return None  # 민수
 
 
 class DiaryCreateSerializer(serializers.ModelSerializer):
