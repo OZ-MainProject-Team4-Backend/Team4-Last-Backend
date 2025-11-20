@@ -24,23 +24,23 @@
 ---
 
 ## 🖥️ 서비스 소개
-|   메인 화면 (로그인전)  |  메인 화면 (로그인후)  |   메인화면 (전체)   |
+|   메인 화면 (로그인전)  |  메인 화면 (로그인)  |   메인화면 (전체)   |
 |:-------------------:|:------------------:|:------:|
-| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/beforeLogin.gif?raw=true" width="320" alt="MainPage1"> |   <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/afterlogin(2).gif?raw=true" width="320" alt="MainPage2">  | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/full%20main.gif?raw=true" alt="full main">  |
+| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/beforeLogin.gif?raw=true" width="280" alt="MainPage1"> |   <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/loginnnn.gif?raw=true" width="280" alt="MainPage2">  | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/mainnnn.gif?raw=true" width="280" alt="full main">  |
 
 |   다이어리 작성      |  다이어리 수정    |    다이어리 삭제       |
 |:-----------------:|:-------------:|:-------------------:|
-| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/diarycreate.gif?raw=true" width="320" alt="diarycreate.gif"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/diarypatch.gif?raw=true" width="320" alt="diarypatch"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/diarydelete.gif?raw=true" width="320" alt="diarydelete"> |
+| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/diarycreate.gif?raw=true" width="280" alt="diarycreate.gif"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/diarypatch.gif?raw=true" width="280" alt="diarypatch"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/diarydelete.gif?raw=true" width="280" alt="diarydelete"> |
 
 
 |   챗봇   |      즐겨찾는 지역 추가 및 삭제     |   즐겨찾는 지역 별칭으로 저장 및 순서 바꾸기  |
 |:---------------:|:--------------------:|:-------------:|
-| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/chatVideo.gif?raw=true" width="320" alt="chat"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/locationAdd.gif?raw=true" width="320" alt="locationAddDelete"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/reorder.gif?raw=true" width="320" alt="aliasReorder"> |
+| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/chatVideo.gif?raw=true" width="280" alt="chat"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/locationAdd.gif?raw=true" width="280" alt="locationAddDelete"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/reorder.gif?raw=true" width="280" alt="aliasReorder"> |
 
 
 |     옷추천          |        마이페이지 1         |         마이페이지 2    |
 |:-----------------:|:------------------------:|:------------------------:|
-| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/outfitRecommend.gif?raw=true" width="320" alt="outfit_recommendation"> |<img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/mypage.gif?raw=true" width="320" alt="MyPage1"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/mypage2.gif?raw=true" width="350" alt="mypage2"> |
+| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/outfitRecommend.gif?raw=true" width="280" alt="outfit_recommendation"> |<img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/mypage.gif?raw=true" width="270" alt="MyPage1"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/mypage2.gif?raw=true" width="280" alt="mypage2"> |
 ---
 
 ## 🧰 사용 스택
