@@ -18,15 +18,15 @@
 ## 🗣️ 프로젝트 발표 영상 & 발표 문서
 
 > ### 🗓️ 2025. 10. 24 - 2025. 11. 20
-> ### [📺 발표 영상 예시]()
-> ### [📑 발표 문서 예시]()
+> ### [📺 발표 영상 ](https://drive.google.com/drive/folders/13M4xtePsAaBG7ZkVIroeNVsCUQz7SwkU)
+> ### [📑 발표 문서 ](https://www.miricanvas.com/v2/design/158lfyy)
 
 ---
 
 ## 🖥️ 서비스 소개
 |   메인 화면 (로그인전)  |  메인 화면 (로그인)  |   메인화면 (전체)   |
 |:-------------------:|:------------------:|:------:|
-| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/beforeLogin.gif?raw=true" width="280" alt="MainPage1"> |   <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/loginnnn.gif?raw=true" width="280" alt="MainPage2">  | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/mainnnn.gif?raw=true" width="280" alt="full main">  |
+| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/beforeLogin.gif?raw=true" width="280" alt="MainPage1"> |   <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/loginnnn.gif?raw=true" width="280" height="150" alt="MainPage2">  | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/mainnnn.gif?raw=true" width="280" alt="full main">  |
 
 |   다이어리 작성      |  다이어리 수정    |    다이어리 삭제       |
 |:-----------------:|:-------------:|:-------------------:|
@@ -40,7 +40,7 @@
 
 |     옷추천          |        마이페이지 1         |         마이페이지 2    |
 |:-----------------:|:------------------------:|:------------------------:|
-| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/outfitRecommend.gif?raw=true" width="280" alt="outfit_recommendation"> |<img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/mypage.gif?raw=true" width="270" alt="MyPage1"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/mypage2.gif?raw=true" width="280" alt="mypage2"> |
+| <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/outfitRecommend.gif?raw=true" width="280"  alt="outfit_recommendation"> |<img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/main/gif/mypage.gif?raw=true" width="270" alt="MyPage1"> | <img src="https://github.com/OZ-MainProject-Team4-Backend/Team4-Last-Backend/blob/ft/readme.gif/gif/mypage2.gif?raw=true" width="280" alt="mypage2"> |
 ---
 
 ## 🧰 사용 스택
